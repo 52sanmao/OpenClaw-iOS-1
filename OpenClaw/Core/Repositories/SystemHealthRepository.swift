@@ -6,7 +6,7 @@ protocol SystemHealthRepository: Sendable {
 
 final class RemoteSystemHealthRepository: SystemHealthRepository {
     private let client: GatewayClientProtocol
-    private let cache = MemoryCache<SystemStats>(ttl: 30)
+    private let cache = MemoryCache<SystemStats>(ttl: 10)
 
     init(client: GatewayClientProtocol) {
         self.client = client

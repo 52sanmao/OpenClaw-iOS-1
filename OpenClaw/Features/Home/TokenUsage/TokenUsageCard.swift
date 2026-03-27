@@ -90,8 +90,8 @@ private struct TokenUsageBar: View {
             HStack(spacing: Spacing.sm) {
                 LegendDot(color: AppColors.metricPrimary, label: "In", value: totals.inputTokens)
                 LegendDot(color: AppColors.metricPositive, label: "Out", value: totals.outputTokens)
-                LegendDot(color: AppColors.metricHighlight, label: "Cache R", value: totals.cacheReadTokens)
-                LegendDot(color: AppColors.metricTertiary, label: "Cache W", value: totals.cacheWriteTokens)
+                LegendDot(color: AppColors.metricHighlight, label: "Cache Read", value: totals.cacheReadTokens)
+                LegendDot(color: AppColors.metricTertiary, label: "Cache Write", value: totals.cacheWriteTokens)
                 Spacer()
             }
         }
@@ -206,10 +206,10 @@ private struct LegendDot: View {
     let value: Int
 
     var body: some View {
-        HStack(spacing: Spacing.xxs) {
-            Circle().fill(color).frame(width: 6, height: 6)
+        HStack(spacing: 2) {
+            Circle().fill(color).frame(width: 5, height: 5)
             Text("\(label) \(formatTokens(value))")
-                .font(AppTypography.micro)
+                .font(.system(size: 9))
                 .foregroundStyle(AppColors.neutral)
         }
     }

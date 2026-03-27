@@ -55,8 +55,13 @@ struct HomeView: View {
                 }
             }
         }
+        .onAppear {
+            systemVM.startPolling()
+        }
+        .onDisappear {
+            systemVM.stopPolling()
+        }
         .task {
-            systemVM.start()
             cronVM.start()
             outreachVM.start()
             blogVM.start()
