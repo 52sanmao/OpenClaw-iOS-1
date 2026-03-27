@@ -4,70 +4,52 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-- Never build automatically, always user will run manually via xcode.
-
-No external dependencies. No Package.swift, CocoaPods, or SPM packages. Pure Apple frameworks only.
-
-- **Xcode project**: `OpenClaw.xcodeproj` (no workspace)
+- Never build automatically — user runs manually via Xcode.
+- **Project**: `OpenClaw.xcodeproj` (no workspace, no SPM, no CocoaPods)
 - **Bundle ID**: `co.uk.appwebdev.OpenClaw`
-- **Deployment target**: iOS 17+
-- **Swift version**: Uses Swift 6 patterns (@Observable, strict Sendable) though project file says 5.0
+- **Deployment**: iOS 17+, Swift 6 patterns (`@Observable`, strict `Sendable`)
 
 ## Architecture
 
-**Clean Architecture with MVVM per feature, protocol-based DI, and a generic ViewModel base.**
+Clean Architecture with MVVM per feature, protocol-based DI, and a generic ViewModel base.
 
 ### Layer flow
+
 ```
-View → ViewModel (LoadableViewModel<T>) → Repository protocol → GatewayClient → URLSession
-                                              ↓
-                                         MemoryCache (actor, TTL-based)
+View → LoadableViewModel<T> → Repository protocol → GatewayClientProtocol → URLSession
+                                      ↓
+                                 MemoryCache (actor, TTL)
 ```
 
 ### Key abstractions
 
-- **`LoadableViewModel<T>`** (`Core/LoadableViewModel.swift`): Generic `@Observable @MainActor` base class. Handles `data`, `isLoading`, `error`, `isStale`, `start()`, `refresh()`, `cancel()`. All 4 feature VMs are one-liner subclasses that pass a loader closure.
+- **`LoadableViewModel<T>`** (`Core/LoadableViewModel.swift`): `@Observable @MainActor` base class. All feature VMs are one-liner subclasses passing a loader closure. Handles `data`, `isLoading`, `error`, `isStale`, `start()`, `refresh()`, `cancel()` with structured Task management.
 
-- **`GatewayClientProtocol`** (`Core/GatewayClient.swift`): Two methods — `stats()` (GET) and `invoke()` (POST with wrapped response envelope). Concrete `GatewayClient` is a `Sendable` struct.
+- **`GatewayClientProtocol`** (`Core/GatewayClient.swift`): `stats()` (GET) and `invoke()` (POST with wrapped response envelope). Concrete `GatewayClient` is a `Sendable` struct.
 
-- **Repository protocols** (`Core/Repositories/`): One per feature (`SystemHealthRepository`, `CronRepository`, etc.). Concrete `Remote*Repository` implementations own a `MemoryCache<T>` actor and handle DTO→domain mapping.
+- **Repository protocols** (`Core/Repositories/`): One per feature. `Remote*Repository` owns a `MemoryCache<T>` actor and maps DTO→domain.
 
-- **DTOs vs Domain models**: Network `Decodable` types live in `Core/Networking/DTOs/` (suffixed `DTO`). Domain models live in each feature folder and have `init(dto:)` mappers. Domain models use richer types (`Date` instead of `Int` timestamps, `URL?` instead of `String?`).
+- **DTOs vs Domain models**: `Decodable` types in `Core/Networking/DTOs/` (suffixed `DTO`). Domain models in feature folders with `init(dto:)` mappers using richer types (`Date`, `URL?`).
 
-### Navigation structure
+### Navigation
 
-`ContentView` (auth gate) → `MainTabView` (5 tabs):
-1. **Home** — dashboard with 4 summary cards (System, Cron, Outreach, Blog) + Settings gear in toolbar
-2. **Crons** — full job list (shares `CronSummaryViewModel` with Home's cron card)
-3. **Pipelines** — placeholder
-4. **Memory** — placeholder
-5. **Chat** — placeholder
+`ContentView` (auth gate) → `MainTabView` (5 tabs): Home, Crons, Pipelines (placeholder), Memory (placeholder), Chat (placeholder). Settings accessed via Home toolbar gear icon.
 
-The `CronSummaryViewModel` is created once in `MainTabView` and shared between the Home card and Crons tab to avoid duplicate network calls.
+`CronSummaryViewModel` is shared between the Home cron card and Crons tab — created once in `MainTabView`.
 
 ### Design system
 
-All views use semantic tokens — never raw color/spacing/font literals:
-- `Spacing` — 4pt grid (xxs through xxl)
-- `AppColors` — semantic names (`.success`, `.danger`, `.metricPrimary`, `.gauge(percent:warn:critical:)`)
-- `AppTypography` — Dynamic Type styles (`.heroNumber`, `.cardTitle`, `.metricValue`, etc.)
-- `AppRadius` — corner radius tokens (`.sm`, `.card`, etc.)
-
-### Gateway API
-
-All requests go to `https://api.appwebdev.co.uk` with `Authorization: Bearer <token>` (stored in iOS Keychain via `KeychainService`).
-
-| Method | Path | Returns |
-|--------|------|---------|
-| GET | `/stats/system` | `SystemStatsDTO` |
-| GET | `/stats/outreach` | `OutreachStatsDTO` |
-| GET | `/stats/blog` | `BlogStatsDTO` |
-| POST | `/tools/invoke` | Wrapped JSON (`result.content[0].text`) — used for cron list |
+All views use semantic tokens — never raw literals:
+- `Spacing` — 4pt grid (xxs=4 through xxl=48)
+- `AppColors` — `.success`, `.danger`, `.metricPrimary`, `.gauge(percent:warn:critical:)`
+- `AppTypography` — Dynamic Type styles (`.heroNumber`, `.cardTitle`, `.metricValue`)
+- `AppRadius` — `.sm`(8), `.md`(10), `.lg`(12), `.card`(16)
 
 ## Conventions
 
+- **New features**: DTO in `Core/Networking/DTOs/`, domain model in feature folder with `init(dto:)`, repository protocol + `Remote*` in `Core/Repositories/`, VM subclass of `LoadableViewModel<T>`, view using `CardContainer` for dashboard cards.
 - **Concurrency**: `@MainActor` on all ViewModels. `@Sendable` closures for loaders. Actor-based `MemoryCache`. No `@unchecked Sendable`.
-- **New features**: Follow the existing pattern — DTO in `Core/Networking/DTOs/`, domain model in feature folder with `init(dto:)`, repository protocol + `Remote*` implementation in `Core/Repositories/`, VM subclass of `LoadableViewModel<T>`, card view using `CardContainer`.
-- **Logging**: Use `os.Logger` (subsystem: `co.uk.appwebdev.openclaw`), never `print()`.
+- **Logging**: `os.Logger` (subsystem: `co.uk.appwebdev.openclaw`), never `print()`.
 - **Accessibility**: All custom visual components need `.accessibilityElement` + `.accessibilityLabel`.
-- **Haptics**: Use `Haptics.shared` for feedback on user actions (refresh, save, errors).
+- **Haptics**: `Haptics.shared` for user action feedback (refresh, save, errors).
+- **UI**: Use design tokens exclusively. Skeleton shimmer for loading states via `.shimmer()`. `CardLoadingView`/`CardErrorView` for card states.
