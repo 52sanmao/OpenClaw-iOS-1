@@ -58,3 +58,4 @@ All views use semantic tokens — never raw literals:
 - **Pagination**: Large lists must use limit/offset with "Load More" button. Deduplicate on append. See `CronDetailViewModel` for the pattern.
 - **Formatters**: Always use `Formatters.relativeString(for:)` / `Formatters.absoluteString(for:)`. Never instantiate `DateFormatter` or `RelativeDateTimeFormatter` inline.
 - **Cron schedules**: Jobs can be `kind: "cron"` (has `expr`) or `kind: "every"` (has `everyMs`, no `expr`). DTO fields for schedule are optional accordingly.
+- **Markdown**: Use `Markdown(text).markdownTheme(.openClaw)` from MarkdownUI for any LLM-generated content (run summaries, logs, agent output). Custom theme in `Shared/MarkdownTheme+OpenClaw.swift` maps to design tokens. MarkdownUI v2 does not support `.table` theme customization — tables use default styling. Never use `AttributedString(markdown:)` for rich content.
