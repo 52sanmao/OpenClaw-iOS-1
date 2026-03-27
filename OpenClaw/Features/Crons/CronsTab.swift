@@ -10,8 +10,11 @@ struct CronsTab: View {
             Group {
                 if !jobs.isEmpty {
                     List(jobs) { job in
-                        CronJobRow(job: job)
-                            .listRowInsets(EdgeInsets(top: 0, leading: Spacing.md, bottom: 0, trailing: Spacing.md))
+                        CronJobRow(job: job, onRun: { runJob(job) })
+                            .background(
+                                NavigationLink("", destination: CronDetailPlaceholder(job: job))
+                                    .opacity(0)
+                            )
                     }
                     .listStyle(.insetGrouped)
                 } else if vm.isLoading {
@@ -40,69 +43,143 @@ struct CronsTab: View {
         }
         .task { vm.start() }
     }
+
+    private func runJob(_ job: CronJob) {
+        Haptics.shared.success()
+    }
 }
 
-// MARK: - Row (shared between CronsTab and CronSummaryCard)
+// MARK: - Row
 
 struct CronJobRow: View {
     let job: CronJob
+    var onRun: (() -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: Spacing.xs + 2) {
-            Circle()
-                .fill(job.enabled ? AppColors.success : AppColors.neutral)
-                .frame(width: 8, height: 8)
-                .accessibilityLabel(job.enabled ? "Enabled" : "Disabled")
+        HStack(alignment: .center, spacing: Spacing.sm) {
+            // Left: all job info stacked
+            VStack(alignment: .leading, spacing: Spacing.xxs + 1) {
+                // Name + status
+                HStack(spacing: Spacing.xs) {
+                    Circle()
+                        .fill(job.enabled ? AppColors.success : AppColors.neutral)
+                        .frame(width: 8, height: 8)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(job.name)
-                    .font(AppTypography.body)
-                    .lineLimit(1)
-                Text(job.scheduleExpr)
-                    .font(AppTypography.microMono)
+                    Text(job.name)
+                        .font(AppTypography.body)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+
+                    Spacer(minLength: Spacing.xxs)
+
+                    StatusBadge(status: job.status)
+                }
+
+                // Schedule
+                Text(job.scheduleDescription)
+                    .font(AppTypography.caption)
                     .foregroundStyle(AppColors.neutral)
+
+                // Last + Next run
+                HStack(spacing: Spacing.sm) {
+                    Label(job.lastRunFormatted, systemImage: "arrow.counterclockwise")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+
+                    Label(job.nextRunFormatted, systemImage: "arrow.clockwise")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+
+                // Error count
+                if job.consecutiveErrors > 0 {
+                    Label(
+                        "\(job.consecutiveErrors) consecutive error\(job.consecutiveErrors == 1 ? "" : "s")",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColors.danger)
+                }
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Image(systemName: statusIcon)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(statusColor)
-                    .accessibilityLabel(statusAccessibilityLabel)
-                Text(job.nextRunFormatted)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
+            // Right: run button, vertically centered
+            if let onRun {
+                Button {
+                    onRun()
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(AppColors.primaryAction)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Run \(job.name) manually")
             }
         }
-        .padding(.vertical, 7)
+        .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
     }
+}
 
-    private var statusIcon: String {
-        switch job.status {
-        case .succeeded: "checkmark.circle.fill"
-        case .failed:    "xmark.circle.fill"
-        case .unknown:   "questionmark.circle.fill"
-        case .never:     "minus.circle"
+// MARK: - Status Badge
+
+private struct StatusBadge: View {
+    let status: CronJob.RunStatus
+
+    var body: some View {
+        HStack(spacing: Spacing.xxs) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+            Text(label)
+                .font(AppTypography.micro)
+        }
+        .foregroundStyle(color)
+        .padding(.horizontal, Spacing.xs)
+        .padding(.vertical, 3)
+        .background(AppColors.tintedBackground(color), in: Capsule())
+    }
+
+    private var icon: String {
+        switch status {
+        case .succeeded: "checkmark"
+        case .failed:    "xmark"
+        case .unknown:   "questionmark"
+        case .never:     "minus"
         }
     }
 
-    private var statusColor: Color {
-        switch job.status {
+    private var label: String {
+        switch status {
+        case .succeeded: "OK"
+        case .failed:    "Failed"
+        case .unknown:   "Unknown"
+        case .never:     "Never run"
+        }
+    }
+
+    private var color: Color {
+        switch status {
         case .succeeded: AppColors.success
         case .failed:    AppColors.danger
         case .unknown:   AppColors.warning
         case .never:     AppColors.neutral
         }
     }
+}
 
-    private var statusAccessibilityLabel: String {
-        switch job.status {
-        case .succeeded: "Last run succeeded"
-        case .failed:    "Last run failed"
-        case .unknown:   "Last run status unknown"
-        case .never:     "Never run"
+// MARK: - Detail Placeholder
+
+struct CronDetailPlaceholder: View {
+    let job: CronJob
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(job.name, systemImage: "clock.arrow.2.circlepath")
+                .font(AppTypography.screenTitle)
+        } description: {
+            Text("Run history and logs coming soon.")
+                .font(AppTypography.body)
         }
+        .navigationTitle(job.name)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

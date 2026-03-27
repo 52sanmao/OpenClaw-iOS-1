@@ -58,15 +58,24 @@ struct CronJob: Sendable, Identifiable {
         }
 
         // Hourly at :MM
-        if minute != "*", !minute.contains("/"), hour == "*", dom == "*", dow == "*" {
-            return "Hourly at :\(minute.padding(toLength: 2, withPad: "0", startingAt: 0))"
+        if let m = Int(minute), hour == "*", dom == "*", dow == "*" {
+            if m == 0 { return "Every hour" }
+            return "Hourly at :\(String(format: "%02d", m))"
         }
 
         // Daily at HH:MM
-        if minute != "*", hour != "*", !hour.contains("/"), !hour.contains(","), dom == "*", dow == "*" {
-            let h = hour.padding(toLength: 2, withPad: "0", startingAt: 0)
-            let m = minute.padding(toLength: 2, withPad: "0", startingAt: 0)
-            return "Daily at \(h):\(m)"
+        if let h = Int(hour), let m = Int(minute), dom == "*", dow == "*" {
+            return "Daily at \(String(format: "%02d:%02d", h, m))"
+        }
+
+        // Multiple specific hours (e.g. 0 7,9,11 * * *)
+        if minute != "*", hour.contains(","), dom == "*", dow == "*" {
+            let hours = hour.split(separator: ",")
+            let count = hours.count
+            if let first = hours.first, let last = hours.last {
+                let m = minute.padding(toLength: 2, withPad: "0", startingAt: 0)
+                return "\(count)x daily (\(first):\(m)\u{2013}\(last):\(m))"
+            }
         }
 
         // Specific weekdays
