@@ -76,8 +76,10 @@ struct TokenSetupView: View {
 
         do {
             try keychain.saveToken(trimmed)
+            Haptics.shared.success()
             onTokenSaved()
         } catch {
+            Haptics.shared.error()
             errorMessage = error.localizedDescription
             isSaving = false
         }

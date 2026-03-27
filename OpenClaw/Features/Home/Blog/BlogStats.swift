@@ -5,7 +5,7 @@ struct BlogPipelineItem: Sendable {
     let count: Int
 }
 
-struct BlogStats: Decodable, Sendable {
+struct BlogStats: Sendable {
     let published: Int
     let queued: Int
     let researching: Int
@@ -14,10 +14,9 @@ struct BlogStats: Decodable, Sendable {
     let publishing: Int
     let lastPublishedTitle: String?
     let lastPublishedSlug: String?
-    let lastPublishedUrl: String?
-    let timestamp: Int
+    let lastPublishedUrl: URL?
+    let timestamp: Date
 
-    /// Non-zero pipeline stages for pill display.
     var activePipeline: [BlogPipelineItem] {
         [
             BlogPipelineItem(label: "Queued",      count: queued),
@@ -26,5 +25,18 @@ struct BlogStats: Decodable, Sendable {
             BlogPipelineItem(label: "Images",      count: generatingImages),
             BlogPipelineItem(label: "Publishing",  count: publishing),
         ].filter { $0.count > 0 }
+    }
+
+    init(dto: BlogStatsDTO) {
+        published = dto.published
+        queued = dto.queued
+        researching = dto.researching
+        writing = dto.writing
+        generatingImages = dto.generatingImages
+        publishing = dto.publishing
+        lastPublishedTitle = dto.lastPublishedTitle
+        lastPublishedSlug = dto.lastPublishedSlug
+        lastPublishedUrl = dto.lastPublishedUrl.flatMap(URL.init(string:))
+        timestamp = Date(timeIntervalSince1970: Double(dto.timestamp))
     }
 }

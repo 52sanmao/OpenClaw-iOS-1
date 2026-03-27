@@ -69,7 +69,7 @@ private struct CronJobRow: View {
                 Text(job.name)
                     .font(AppTypography.body)
                     .lineLimit(1)
-                Text(job.schedule.expr)
+                Text(job.scheduleExpr)
                     .font(AppTypography.microMono)
                     .foregroundStyle(AppColors.neutral)
             }
@@ -91,7 +91,7 @@ private struct CronJobRow: View {
     }
 
     private var statusIcon: String {
-        switch job.lastRunStatus {
+        switch job.status {
         case .succeeded: "checkmark.circle.fill"
         case .failed:    "xmark.circle.fill"
         case .unknown:   "questionmark.circle.fill"
@@ -100,7 +100,7 @@ private struct CronJobRow: View {
     }
 
     private var statusColor: Color {
-        switch job.lastRunStatus {
+        switch job.status {
         case .succeeded: AppColors.success
         case .failed:    AppColors.danger
         case .unknown:   AppColors.warning
@@ -109,7 +109,7 @@ private struct CronJobRow: View {
     }
 
     private var statusAccessibilityLabel: String {
-        switch job.lastRunStatus {
+        switch job.status {
         case .succeeded: "Last run succeeded"
         case .failed:    "Last run failed"
         case .unknown:   "Last run status unknown"

@@ -39,8 +39,7 @@ struct BlogPipelineCard: View {
 
                     // Last published link
                     if let title = s.lastPublishedTitle,
-                       let urlString = s.lastPublishedUrl,
-                       let url = URL(string: urlString) {
+                       let url = s.lastPublishedUrl {
                         Divider()
                         Link(destination: url) {
                             HStack(alignment: .top, spacing: Spacing.xs) {

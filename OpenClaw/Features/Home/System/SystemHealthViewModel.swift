@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 final class SystemHealthViewModel: LoadableViewModel<SystemStats> {
-    init(client: GatewayClientProtocol) {
-        super.init { try await client.stats("stats/system") }
+    init(repository: SystemHealthRepository) {
+        super.init { try await repository.fetch() }
     }
 }

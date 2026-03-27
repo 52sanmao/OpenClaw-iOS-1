@@ -11,10 +11,10 @@ struct HomeView: View {
     init(keychain: KeychainService) {
         self.keychain = keychain
         let client = GatewayClient(keychain: keychain)
-        _systemVM   = State(initialValue: SystemHealthViewModel(client: client))
-        _cronVM     = State(initialValue: CronSummaryViewModel(client: client))
-        _outreachVM = State(initialValue: OutreachStatsViewModel(client: client))
-        _blogVM     = State(initialValue: BlogPipelineViewModel(client: client))
+        _systemVM   = State(initialValue: SystemHealthViewModel(repository: RemoteSystemHealthRepository(client: client)))
+        _cronVM     = State(initialValue: CronSummaryViewModel(repository: RemoteCronRepository(client: client)))
+        _outreachVM = State(initialValue: OutreachStatsViewModel(repository: RemoteOutreachRepository(client: client)))
+        _blogVM     = State(initialValue: BlogPipelineViewModel(repository: RemoteBlogRepository(client: client)))
     }
 
     var body: some View {
@@ -35,6 +35,7 @@ struct HomeView: View {
                 async let o: Void = outreachVM.refresh()
                 async let b: Void = blogVM.refresh()
                 _ = await (s, c, o, b)
+                Haptics.shared.refreshComplete()
             }
             .navigationTitle("OpenClaw")
             .navigationBarTitleDisplayMode(.large)

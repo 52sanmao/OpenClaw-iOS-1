@@ -75,13 +75,15 @@ struct SettingsView: View {
         let client = GatewayClient(keychain: keychain)
         Task {
             do {
-                let stats: SystemStats = try await client.stats("stats/system")
+                let dto: SystemStatsDTO = try await client.stats("stats/system")
                 testResult = TestResult(
                     isSuccess: true,
-                    message: "OK — CPU \(String(format: "%.1f", stats.cpuPercent))%  RAM \(stats.ramPercent)%"
+                    message: "OK \u{2014} CPU \(String(format: "%.1f", dto.cpuPercent))%  RAM \(dto.ramPercent)%"
                 )
+                Haptics.shared.success()
             } catch {
                 testResult = TestResult(isSuccess: false, message: error.localizedDescription)
+                Haptics.shared.error()
             }
             isTesting = false
         }
