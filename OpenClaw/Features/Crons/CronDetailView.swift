@@ -75,8 +75,9 @@ struct CronDetailView: View {
                                         .font(AppTypography.micro)
                                     Text("Last investigated \(prev.investigatedAtFormatted)")
                                         .font(AppTypography.micro)
+                                        .underline()
                                 }
-                                .foregroundStyle(AppColors.neutral)
+                                .foregroundStyle(AppColors.primaryAction)
                             }
                             .buttonStyle(.plain)
                         }

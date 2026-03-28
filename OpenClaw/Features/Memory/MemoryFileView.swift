@@ -77,47 +77,66 @@ private struct ParagraphRow: View {
     let onAddComment: () -> Void
     let onRemoveComment: (UUID) -> Void
 
+    private var hasComments: Bool { !comments.isEmpty }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            // Content
-            Markdown(paragraph.text)
-                .markdownTheme(.openClaw)
-                .textSelection(.enabled)
-                .padding(.horizontal, Spacing.md)
-                .padding(.top, Spacing.sm)
+        HStack(spacing: 0) {
+            // Gutter — highlighted accent bar when paragraph has comments
+            RoundedRectangle(cornerRadius: 2)
+                .fill(hasComments ? AppColors.metricWarm : .clear)
+                .frame(width: 3)
+                .padding(.vertical, Spacing.xs)
 
-            // Comments on this paragraph
-            ForEach(comments) { comment in
-                HStack(alignment: .top, spacing: Spacing.xs) {
-                    Image(systemName: "text.bubble.fill")
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppColors.metricWarm)
-                    Text(comment.text)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.metricWarm)
-                    Spacer()
-                    Button { onRemoveComment(comment.id) } label: {
-                        Image(systemName: "xmark.circle.fill")
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                // Content — tinted background when has comments
+                Markdown(paragraph.text)
+                    .markdownTheme(.openClaw)
+                    .padding(Spacing.sm)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        hasComments
+                            ? AppColors.tintedBackground(AppColors.metricWarm, opacity: 0.06)
+                            : .clear,
+                        in: RoundedRectangle(cornerRadius: AppRadius.sm)
+                    )
+
+                // Inline comments
+                ForEach(comments) { comment in
+                    HStack(alignment: .top, spacing: Spacing.xs) {
+                        Image(systemName: "text.bubble.fill")
                             .font(AppTypography.micro)
-                            .foregroundStyle(AppColors.neutral)
+                            .foregroundStyle(AppColors.metricWarm)
+                        Text(comment.text)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.metricWarm)
+                        Spacer()
+                        Button { onRemoveComment(comment.id) } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColors.neutral)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(Spacing.xs)
+                    .background(AppColors.tintedBackground(AppColors.metricWarm, opacity: 0.08), in: RoundedRectangle(cornerRadius: AppRadius.sm))
                 }
-                .padding(Spacing.xs)
-                .background(AppColors.tintedBackground(AppColors.metricWarm, opacity: 0.08), in: RoundedRectangle(cornerRadius: AppRadius.sm))
-                .padding(.horizontal, Spacing.md)
-            }
 
-            // Add comment button
-            Button(action: onAddComment) {
-                Label("Comment", systemImage: "plus.bubble")
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
+                // Add comment button
+                Button(action: onAddComment) {
+                    HStack(spacing: Spacing.xxs) {
+                        Image(systemName: "plus.bubble")
+                        Text(hasComments ? "Add Another" : "Add Comment")
+                    }
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.primaryAction)
+                    .padding(.vertical, Spacing.xxs)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, Spacing.md)
-            .padding(.bottom, Spacing.xs)
+            .padding(.horizontal, Spacing.sm)
+            .padding(.vertical, Spacing.xs)
         }
+        .padding(.horizontal, Spacing.xs)
     }
 }
 
@@ -127,42 +146,72 @@ private struct AddCommentSheet: View {
     let paragraphPreview: String
     let onSubmit: (String) -> Void
     @State private var text = ""
+    @FocusState private var isFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: Spacing.md) {
+            VStack(spacing: 0) {
                 // Preview of paragraph
-                Text(String(paragraphPreview.prefix(200)))
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.neutral)
-                    .lineLimit(4)
-                    .padding(Spacing.sm)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.neutral.opacity(0.06), in: RoundedRectangle(cornerRadius: AppRadius.sm))
-
-                // Comment input
-                TextField("What should change here\u{2026}", text: $text, axis: .vertical)
-                    .font(AppTypography.body)
-                    .lineLimit(3...8)
-                    .textFieldStyle(.roundedBorder)
+                ScrollView {
+                    Text(String(paragraphPreview.prefix(300)))
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.neutral)
+                        .lineLimit(6)
+                        .padding(Spacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppColors.neutral.opacity(0.06), in: RoundedRectangle(cornerRadius: AppRadius.sm))
+                        .padding(Spacing.md)
+                }
+                .frame(maxHeight: 120)
 
                 Spacer()
-            }
-            .padding(Spacing.md)
-            .navigationTitle("Add Comment")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+
+                // Input bar — pinned to bottom
+                Divider()
+                HStack(alignment: .center, spacing: Spacing.sm) {
+                    // Microphone button (placeholder)
+                    Button {} label: {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(AppColors.neutral)
+                            .frame(width: 36, height: 36)
+                    }
+
+                    // Text input
+                    TextField("What should change here\u{2026}", text: $text, axis: .vertical)
+                        .font(AppTypography.body)
+                        .lineLimit(1...8)
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xs + 2)
+                        .background(AppColors.neutral.opacity(0.08), in: RoundedRectangle(cornerRadius: 20))
+                        .focused($isFocused)
+
+                    // Send button
+                    Button {
                         let trimmed = text.trimmingCharacters(in: .whitespaces)
                         guard !trimmed.isEmpty else { return }
                         onSubmit(trimmed)
+                    } label: {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(
+                                text.trimmingCharacters(in: .whitespaces).isEmpty
+                                    ? AppColors.neutral
+                                    : AppColors.primaryAction
+                            )
                     }
                     .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.sm)
+            }
+            .navigationTitle("Add Comment")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { isFocused = true }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
                 }
             }
         }
