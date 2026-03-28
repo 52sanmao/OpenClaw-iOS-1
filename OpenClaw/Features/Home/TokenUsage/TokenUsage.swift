@@ -29,15 +29,35 @@ struct TokenUsage: Sendable {
         let thinkingRequests: Int
         let toolRequests: Int
         let costUsd: Double
+
+        var cacheHitRate: Double {
+            Self.computeCacheHitRate(input: inputTokens, cacheRead: cacheReadTokens)
+        }
+
+        static func computeCacheHitRate(input: Int, cacheRead: Int) -> Double {
+            let total = Double(input + cacheRead)
+            guard total > 0 else { return 0 }
+            return Double(cacheRead) / total
+        }
     }
 
     struct ModelUsage: Sendable, Identifiable {
         var id: String { "\(model)-\(provider)" }
         let model: String
         let provider: String
+        let inputTokens: Int
+        let outputTokens: Int
+        let cacheReadTokens: Int
+        let cacheWriteTokens: Int
         let totalTokens: Int
         let requestCount: Int
+        let thinkingRequests: Int
+        let toolRequests: Int
         let costUsd: Double
+
+        var cacheHitRate: Double {
+            Totals.computeCacheHitRate(input: inputTokens, cacheRead: cacheReadTokens)
+        }
     }
 
     init(dto: TokenUsageDTO) {
@@ -58,8 +78,14 @@ struct TokenUsage: Sendable {
             .map { ModelUsage(
                 model: $0.model,
                 provider: $0.provider,
+                inputTokens: $0.inputTokens,
+                outputTokens: $0.outputTokens,
+                cacheReadTokens: $0.cacheReadTokens,
+                cacheWriteTokens: $0.cacheWriteTokens,
                 totalTokens: $0.totalTokens,
                 requestCount: $0.requestCount,
+                thinkingRequests: $0.thinkingRequests,
+                toolRequests: $0.toolRequests,
                 costUsd: $0.costUsd
             )}
     }
@@ -89,8 +115,14 @@ struct TokenUsageDTO: Decodable, Sendable {
     struct ModelUsageDTO: Decodable, Sendable {
         let model: String
         let provider: String
+        let inputTokens: Int
+        let outputTokens: Int
+        let cacheReadTokens: Int
+        let cacheWriteTokens: Int
         let totalTokens: Int
         let requestCount: Int
+        let thinkingRequests: Int
+        let toolRequests: Int
         let costUsd: Double
     }
 }

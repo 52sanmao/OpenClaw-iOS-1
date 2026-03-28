@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct TokenUsageCard: View {
-    @State var vm: TokenUsageViewModel
+    @Bindable var vm: TokenUsageViewModel
+    var detailRepository: CronDetailRepository?
 
     var body: some View {
         CardContainer(
@@ -36,7 +37,7 @@ struct TokenUsageCard: View {
                         Spacer()
                         if usage.totals.costUsd > 0 {
                             VStack(alignment: .trailing, spacing: 2) {
-                                Text(String(format: "$%.2f", usage.totals.costUsd))
+                                Text(Formatters.cost(usage.totals.costUsd))
                                     .font(AppTypography.metricValue)
                                     .foregroundStyle(AppColors.metricWarm)
                                     .contentTransition(.numericText())
@@ -57,6 +58,23 @@ struct TokenUsageCard: View {
                     if !usage.byModel.isEmpty {
                         ModelBreakdownSection(models: usage.byModel)
                     }
+
+                    // Detail navigation
+                    if let repo = detailRepository {
+                        NavigationLink {
+                            TokenDetailView(vm: vm, detailRepository: repo)
+                        } label: {
+                            HStack(spacing: Spacing.xxs) {
+                                Text("View Details")
+                                    .font(AppTypography.caption)
+                                Image(systemName: "chevron.right")
+                                    .font(AppTypography.micro)
+                            }
+                            .foregroundStyle(AppColors.primaryAction)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.xxs)
+                        }
+                    }
                 }
             } else if vm.isLoading {
                 CardLoadingView(minHeight: 120)
@@ -67,7 +85,7 @@ struct TokenUsageCard: View {
     }
 }
 
-// MARK: - Token Usage Bar (different from TokenBreakdownBar — includes cache)
+// MARK: - Token Usage Bar
 
 private struct TokenUsageBar: View {
     let totals: TokenUsage.Totals
@@ -88,10 +106,10 @@ private struct TokenUsageBar: View {
             .clipShape(Capsule())
 
             HStack(spacing: Spacing.sm) {
-                LegendDot(color: AppColors.metricPrimary, label: "In", value: totals.inputTokens)
-                LegendDot(color: AppColors.metricPositive, label: "Out", value: totals.outputTokens)
-                LegendDot(color: AppColors.metricHighlight, label: "Cache Read", value: totals.cacheReadTokens)
-                LegendDot(color: AppColors.metricTertiary, label: "Cache Write", value: totals.cacheWriteTokens)
+                TokenLegendItem(color: AppColors.metricPrimary, label: "In", value: totals.inputTokens)
+                TokenLegendItem(color: AppColors.metricPositive, label: "Out", value: totals.outputTokens)
+                TokenLegendItem(color: AppColors.metricHighlight, label: "Cache Read", value: totals.cacheReadTokens)
+                TokenLegendItem(color: AppColors.metricTertiary, label: "Cache Write", value: totals.cacheWriteTokens)
                 Spacer()
             }
         }
@@ -167,16 +185,7 @@ private struct ModelBreakdownSection: View {
             if isExpanded {
                 ForEach(models) { model in
                     HStack(spacing: Spacing.xs) {
-                        Text(Formatters.modelShortName(model.model))
-                            .font(AppTypography.caption)
-                            .lineLimit(1)
-
-                        Text(model.provider)
-                            .font(AppTypography.micro)
-                            .padding(.horizontal, Spacing.xs - 2)
-                            .padding(.vertical, 2)
-                            .background(AppColors.pillBackground, in: Capsule())
-                            .foregroundStyle(AppColors.pillForeground)
+                        ModelPill(model: model.model)
 
                         Spacer()
 
@@ -192,23 +201,4 @@ private struct ModelBreakdownSection: View {
             }
         }
     }
-
 }
-
-// MARK: - Helpers
-
-private struct LegendDot: View {
-    let color: Color
-    let label: String
-    let value: Int
-
-    var body: some View {
-        HStack(spacing: 2) {
-            Circle().fill(color).frame(width: 5, height: 5)
-            Text("\(label) \(Formatters.tokens(value))")
-                .font(AppTypography.nano)
-                .foregroundStyle(AppColors.neutral)
-        }
-    }
-}
-

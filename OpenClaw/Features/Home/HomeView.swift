@@ -9,10 +9,12 @@ struct HomeView: View {
 
     private let cronVM: CronSummaryViewModel
     private let keychain: KeychainService
+    private let cronDetailRepository: CronDetailRepository
 
-    init(keychain: KeychainService, client: GatewayClientProtocol, cronVM: CronSummaryViewModel) {
+    init(keychain: KeychainService, client: GatewayClientProtocol, cronVM: CronSummaryViewModel, cronDetailRepository: CronDetailRepository) {
         self.keychain = keychain
         self.cronVM = cronVM
+        self.cronDetailRepository = cronDetailRepository
         _systemVM     = State(initialValue: SystemHealthViewModel(repository: RemoteSystemHealthRepository(client: client)))
         _outreachVM   = State(initialValue: OutreachStatsViewModel(repository: RemoteOutreachRepository(client: client)))
         _blogVM       = State(initialValue: BlogPipelineViewModel(repository: RemoteBlogRepository(client: client)))
@@ -27,7 +29,9 @@ struct HomeView: View {
                     SystemHealthCard(vm: systemVM)
                     CommandsCard(vm: commandsVM)
                     CronSummaryCard(vm: cronVM)
-                    TokenUsageCard(vm: tokenUsageVM)
+
+                    TokenUsageCard(vm: tokenUsageVM, detailRepository: cronDetailRepository)
+
                     OutreachStatsCard(vm: outreachVM)
                     BlogPipelineCard(vm: blogVM)
                 }

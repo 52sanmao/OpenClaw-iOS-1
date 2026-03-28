@@ -32,6 +32,11 @@ enum Formatters {
         return "\(count)"
     }
 
+    /// Format cost: 8.24 → "$8.24", 0.0 → "–"
+    static func cost(_ usd: Double) -> String {
+        usd > 0 ? String(format: "$%.2f", usd) : "\u{2013}"
+    }
+
     /// Shorten model identifiers: "github-copilot/claude-3-5-sonnet" → "3.5.sonnet"
     static func modelShortName(_ model: String) -> String {
         let cleaned = model

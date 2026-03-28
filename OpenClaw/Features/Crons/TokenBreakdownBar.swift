@@ -43,7 +43,8 @@ struct TokenBreakdownBar: View {
     }
 }
 
-private struct TokenLegendItem: View {
+/// Reusable legend dot + label for token bars.
+struct TokenLegendItem: View {
     let color: Color
     let label: String
     let value: Int

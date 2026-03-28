@@ -19,7 +19,7 @@ struct MainTabView: View {
     var body: some View {
         TabView {
             Tab("Home", systemImage: "house.fill") {
-                HomeView(keychain: keychain, client: client, cronVM: cronVM)
+                HomeView(keychain: keychain, client: client, cronVM: cronVM, cronDetailRepository: cronDetailRepo)
             }
 
             Tab("Crons", systemImage: "clock.arrow.2.circlepath") {
