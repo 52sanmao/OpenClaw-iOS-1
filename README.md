@@ -50,8 +50,9 @@ Full step-by-step trace of agent execution with metadata pills (model, provider,
 
 ### Mem & Skills Tab
 
-- **Memory segment** — workspace files grouped by type (Memory Files, Daily Logs, Reference). Markdown rendered paragraph by paragraph. Add Figma-style comments on paragraphs, submit to the AI agent to perform edits.
-- **Skills segment** — browse skill folders (blog-researcher, skill-reddit, outreach-email, etc.). Each skill shows its file tree: documents (.md) open in the full paragraph viewer with comments, scripts and configs (.py, .json, etc.) open in a read-only monospace viewer with copy button. All skill file reading via `skill-read` exec command.
+- **Memory segment** — workspace files grouped by type (Memory Files, Daily Logs, Reference). Markdown rendered paragraph by paragraph. Add Figma-style comments on paragraphs, submit to the AI agent to perform edits. Page-level comment button (💬) to instruct the agent about the whole file.
+- **Skills segment** — browse skill folders (blog-researcher, skill-reddit, outreach-email, etc.). Each skill shows its file tree: documents (.md) open in the full paragraph viewer with comments, scripts and configs (.py, .json, etc.) open in a read-only monospace viewer with copy button. Skill-level comment button sends instructions to the agent — the agent reads `create-skill` first (best practices), then the target skill, before acting. All skill file reading via `skill-read` exec command.
+- **Comment system** — three levels: paragraph (inline), page (whole file), skill (whole skill). All share the same `CommentInputBar` and `CommentSheet` UI. Paragraph comments queue and batch-submit with swipe-to-delete. Page and skill comments submit immediately.
 
 ## Getting Started
 

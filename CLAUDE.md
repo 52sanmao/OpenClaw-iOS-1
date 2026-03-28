@@ -86,8 +86,10 @@ Sub-grid visual details (2pt padding, 6pt dots, 8pt indicator circles) are accep
 - **Terminal output**: Strip ANSI codes with `CommandsViewModel.stripAnsi()`. Display in monospace (`AppTypography.captionMono`) with tinted background.
 - **Confirmations**: Destructive actions (run cron, disable job, run command) must show an alert with confirmation before executing.
 - **Prompt templates**: All agent prompts live in `Core/Prompts/PromptTemplates.swift` — one file, easy to tune.
+- **Comment system**: Three comment modes via unified `CommentSheet`: `.paragraph` (inline annotation on a paragraph), `.page` (whole-file instruction), `.skill` (skill-level instruction — agent reads `create-skill` first for best practices, then the target skill). All share `CommentInputBar`. Paragraph comments queue up and batch-submit via `SubmitEditsSheet` (swipe-to-delete before submitting). Page and skill comments submit immediately to the agent.
 - **Memory/skill annotation pattern**: Files are read-only in the UI. Users add comments on paragraphs, then submit as a batch to the agent. Never write files directly — always agent-mediated. `MemoryFileView` accepts optional `skillEntry` to use `skill-read` instead of `memory_get`.
 - **Skill file reading**: Always use `POST /stats/exec` with `skill-read` command — not `memory_get`. Pass `"skillId relativePath"` as args.
+- **Skill prompt pattern**: Skill-level prompts MUST instruct the agent to read the `create-skill` skill first (master guide for skill structure and conventions), then the target skill's SKILL.md, before acting. Never let the agent modify a skill without understanding both.
 - **Long-running agent calls**: Use `ElapsedTimer` to show live elapsed time. Never set short timeouts on `chatCompletion()` — agent may take 15+ minutes for complex tasks (investigations, file edits).
 - **Investigation persistence**: Save latest investigation per job to `InvestigationStore`. Show "Last investigated X ago" link to reopen previous result without re-running.
 - **Investigate with AI**: Available on both cron errors (`CronDetailView`) and command results (`CommandResultSheet`). Sends structured prompt to agent, shows markdown response with model/token info.
@@ -105,6 +107,7 @@ All prompts sent to the agent follow these principles:
 - **Structure: task → steps → rules** — system prompt says what the task is, numbered steps to follow, then rules/constraints. User message has only the data.
 - **Context padding** — include 2 lines before and after the target section in a code block.
 - **Agent should act, not just report** — for investigations, the prompt tells the agent to fix the issue in the same call if possible, then report what it did. Don't just suggest next steps.
+- **Skill prompts: read before act** — skill-level prompts tell the agent to read `create-skill` first (best practices), then the target skill, then act. Don't hardcode the `create-skill` path — the agent resolves it from the workspace root. This two-step read produces significantly higher quality responses.
 
 ## Gateway API Gotchas
 
