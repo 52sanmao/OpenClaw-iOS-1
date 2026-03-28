@@ -28,6 +28,7 @@ Built with SwiftUI and Swift Concurrency. One dependency: [MarkdownUI](https://g
 - **Header** — status badge, enable/disable toggle (with confirmation + auto-navigate back), "Run Now" button (with confirmation)
 - **Schedule** — human-readable frequency, raw cron expression, timezone
 - **Timing** — last run with status + error message, next run with absolute date, consecutive errors
+- **Investigate with AI** — when a job has errors, a bold action button sends the error to the orchestrator agent. The agent checks logs, diagnoses root cause, and fixes the issue if possible. Shows live elapsed timer during investigation, then a structured report (Status/Root Cause/Action Taken/Impact) with copy button. Latest investigation saved locally per job — "Last investigated X ago" link to reopen without re-running.
 - **Run History** — paginated (20 per page). Each entry: status, time, duration, model badge, total tokens, token breakdown bar (input/output/reasoning). Tap to expand markdown summary. Tap row to open trace.
 
 ### Agent Execution Trace

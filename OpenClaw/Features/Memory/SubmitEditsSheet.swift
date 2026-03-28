@@ -28,6 +28,23 @@ struct SubmitEditsSheet: View {
                     }
                 }
 
+                if vm.isSubmitting {
+                    Section {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: Spacing.xs) {
+                                ProgressView()
+                                Text("Agent is editing\u{2026}")
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.neutral)
+                                ElapsedTimer()
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, Spacing.md)
+                    }
+                }
+
                 if let response = vm.submitResult {
                     Section("Agent Response") {
                         Markdown(response)

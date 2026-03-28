@@ -18,6 +18,7 @@ struct InvestigateSheet: View {
                         Text("Investigating\u{2026}")
                             .font(AppTypography.body)
                             .foregroundStyle(AppColors.neutral)
+                        ElapsedTimer()
                         Text("The agent is checking logs, diagnosing, and fixing if needed.")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)

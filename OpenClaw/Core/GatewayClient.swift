@@ -101,6 +101,14 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
 
     // MARK: - POST /v1/chat/completions (with session key header)
 
+    /// Long-running session for chat completions — no timeout (agent may take 15+ minutes).
+    private static let longRunningSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 900  // 15 min
+        config.timeoutIntervalForResource = 900
+        return URLSession(configuration: config)
+    }()
+
     func chatCompletion(_ body: ChatCompletionRequest, sessionKey: String) async throws -> ChatCompletionResponse {
         let token = try requireToken()
 
@@ -116,7 +124,7 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
 
         Self.logger.debug("POST /v1/chat/completions (session: \(sessionKey))")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await Self.longRunningSession.data(for: request)
         try validateHTTPResponse(response, data: data, path: "v1/chat/completions")
 
         return try JSONDecoder().decode(ChatCompletionResponse.self, from: data)
