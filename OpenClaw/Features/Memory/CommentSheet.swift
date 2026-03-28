@@ -12,18 +12,29 @@ struct CommentSheet: View {
         case paragraph(preview: String, onSubmit: (String) -> Void)
         /// Page comment — shows file info, submits to agent.
         case page(fileName: String, filePath: String, vm: MemoryViewModel)
+        /// Skill comment — shows skill info + file list, agent reads SKILL.md first.
+        case skill(skill: SkillFile, files: [String], vm: MemoryViewModel)
     }
 
     private var title: String {
         switch mode {
         case .paragraph: "Add Comment"
         case .page: "Page Comment"
+        case .skill: "Skill Comment"
         }
     }
 
-    /// Whether the page-mode agent has started or finished.
-    private var pageHasActivity: Bool {
-        guard case .page(_, _, let vm) = mode else { return false }
+    private var agentVM: MemoryViewModel? {
+        switch mode {
+        case .paragraph: nil
+        case .page(_, _, let vm): vm
+        case .skill(_, _, let vm): vm
+        }
+    }
+
+    /// Whether the agent has started or finished.
+    private var agentHasActivity: Bool {
+        guard let vm = agentVM else { return false }
         return vm.isSubmittingPageComment || vm.pageCommentResult != nil || vm.pageCommentError != nil
     }
 
@@ -34,11 +45,12 @@ struct CommentSheet: View {
                 case .paragraph(let preview, _):
                     paragraphContent(preview: preview)
                 case .page(let fileName, let filePath, let vm):
-                    pageContent(fileName: fileName, filePath: filePath, vm: vm)
+                    agentContent(heading: fileName, subheading: filePath, vm: vm)
+                case .skill(let skill, let files, let vm):
+                    agentContent(heading: skill.displayName, subheading: "skills/\(skill.id)/ \u{2014} \(files.count) files", vm: vm)
                 }
 
-                // Input bar — hidden once page submission has started
-                if !pageHasActivity {
+                if !agentHasActivity {
                     CommentInputBar(
                         placeholder: inputPlaceholder,
                         text: $text
@@ -52,7 +64,7 @@ struct CommentSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(dismissLabel) {
-                        if case .page(_, _, let vm) = mode { vm.clearPageComment() }
+                        agentVM?.clearPageComment()
                         dismiss()
                     }
                 }
@@ -79,17 +91,17 @@ struct CommentSheet: View {
         Spacer()
     }
 
-    // MARK: - Page Mode
+    // MARK: - Agent Mode (page + skill)
 
     @ViewBuilder
-    private func pageContent(fileName: String, filePath: String, vm: MemoryViewModel) -> some View {
+    private func agentContent(heading: String, subheading: String, vm: MemoryViewModel) -> some View {
         List {
             Section {
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(fileName)
+                    Text(heading)
                         .font(AppTypography.body)
                         .fontWeight(.semibold)
-                    Text(filePath)
+                    Text(subheading)
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                 }
@@ -137,23 +149,23 @@ struct CommentSheet: View {
         switch mode {
         case .paragraph: "What should change here\u{2026}"
         case .page: "What should the agent do\u{2026}"
+        case .skill: "Instruct the agent about this skill\u{2026}"
         }
     }
 
     private var presentationDetents: Set<PresentationDetent> {
         switch mode {
         case .paragraph: [.medium]
-        case .page: [.medium, .large]
+        case .page, .skill: [.medium, .large]
         }
     }
 
-    /// Cancel label changes to Done after agent completes.
     private var dismissLabel: String {
-        if case .page(_, _, let vm) = mode,
-           vm.pageCommentResult != nil || vm.pageCommentError != nil {
-            return "Done"
+        guard let vm = agentVM,
+              vm.pageCommentResult != nil || vm.pageCommentError != nil else {
+            return "Cancel"
         }
-        return "Cancel"
+        return "Done"
     }
 
     private func handleSubmit(_ submitted: String) {
@@ -164,6 +176,9 @@ struct CommentSheet: View {
         case .page(_, let filePath, let vm):
             text = ""
             Task { await vm.submitPageComment(path: filePath, instruction: submitted) }
+        case .skill(let skill, let files, let vm):
+            text = ""
+            Task { await vm.submitSkillComment(skill: skill, files: files, instruction: submitted) }
         }
     }
 }

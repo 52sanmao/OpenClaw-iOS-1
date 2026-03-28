@@ -61,6 +61,48 @@ enum PromptTemplates {
         return (system: system, user: user)
     }
 
+    /// Build a prompt for a skill-level instruction.
+    /// The agent reads the SKILL.md first to understand the skill before acting.
+    static func skillComment(
+        skillId: String,
+        skillName: String,
+        files: [String],
+        instruction: String
+    ) -> (system: String, user: String) {
+
+        let system = """
+        You have a task: apply a user instruction to a skill.
+        The workspace root is: ~/.openclaw/workspace/orchestrator/
+        The skill folder is: skills/\(skillId)/
+
+        Before doing ANYTHING, follow these steps in order:
+        1. Read the `create-skill` skill first — it is the master guide for how skills are structured, best practices, and conventions. You MUST read this first.
+        2. Read `skills/\(skillId)/SKILL.md` — understand what THIS specific skill does, its purpose, scripts, and configuration
+        3. If the instruction references specific files, read those too
+        4. Only THEN apply the user's instruction — with full knowledge of skill best practices AND this skill's design
+        5. If you need to create, edit, or delete files — use the write tool
+        6. Reply with a 2-3 bullet summary of what you understood and what you changed
+
+        Rules:
+        - Always read create-skill FIRST, then the target skill — never act without understanding both
+        - Follow the conventions and structure defined in create-skill
+        - Maintain the skill's existing structure unless the instruction says otherwise
+        - If the instruction is unclear given the skill's purpose, explain what you'd recommend instead of blindly executing
+        - You MUST read before writing — do not guess file contents
+        """
+
+        let fileList = files.map { "  - \($0)" }.joined(separator: "\n")
+        let user = """
+        Skill: `\(skillName)` (folder: \(skillId))
+        Files in this skill:
+        \(fileList)
+
+        Instruction: \(instruction)
+        """
+
+        return (system: system, user: user)
+    }
+
     /// Build a prompt for investigating a cron job error.
     static func investigateCronError(
         jobName: String,

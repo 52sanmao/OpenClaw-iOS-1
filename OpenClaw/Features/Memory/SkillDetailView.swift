@@ -4,6 +4,7 @@ import SwiftUI
 struct SkillDetailView: View {
     var vm: MemoryViewModel
     let skill: SkillFile
+    @State private var showSkillComment = false
 
     private var markdownFiles: [SkillFileEntry] { vm.skillFiles.filter(\.isMarkdown) }
     private var otherFiles: [SkillFileEntry] { vm.skillFiles.filter { !$0.isMarkdown } }
@@ -59,6 +60,20 @@ struct SkillDetailView: View {
         }
         .navigationTitle(skill.displayName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button { showSkillComment = true } label: {
+                    Image(systemName: "text.bubble")
+                }
+            }
+        }
+        .sheet(isPresented: $showSkillComment) {
+            CommentSheet(mode: .skill(
+                skill: skill,
+                files: vm.skillFiles.map(\.id),
+                vm: vm
+            ))
+        }
         .refreshable {
             await vm.loadSkillFiles(skill)
             Haptics.shared.refreshComplete()
