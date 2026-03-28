@@ -72,16 +72,20 @@ struct SessionsView: View {
         if vm.isLoading && vm.subagents.isEmpty {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if !vm.subagents.isEmpty {
-            List(vm.subagents) { session in
-                NavigationLink {
-                    SessionTraceView(
-                        sessionKey: session.id,
-                        title: session.displayName,
-                        subtitle: session.updatedAtFormatted,
-                        repository: repository
-                    )
-                } label: {
-                    SubagentRow(session: session)
+            List {
+                Section("Subagent Sessions") {
+                    ForEach(vm.subagents) { session in
+                        NavigationLink {
+                            SessionTraceView(
+                                sessionKey: session.id,
+                                title: session.displayName,
+                                subtitle: session.updatedAtFormatted,
+                                repository: repository
+                            )
+                        } label: {
+                            SubagentRow(session: session)
+                        }
+                    }
                 }
             }
             .listStyle(.insetGrouped)

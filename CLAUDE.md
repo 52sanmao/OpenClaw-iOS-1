@@ -43,6 +43,7 @@ Depth:
 - Crons tab: segmented **Cron Jobs** / **History**. Cron Jobs → `CronDetailView` → `SessionTraceView`. History → `SessionTraceView` directly.
 - Mem & Skills tab: segmented **Memory** / **Skills**. Memory → `MemoryFileView`. Skills → `SkillDetailView` (file tree) → `MemoryFileView` (.md) or `ReadOnlyFileView` (scripts/config).
 - Sessions tab: segmented **Chat History** / **Subagents**. Both → `SessionTraceView`. Chat history shows newest first.
+- Crons tab: calendar icon (top right) → `ScheduleTimelineView` (24-hour timeline of today's scheduled runs).
 
 ### Design system
 
@@ -101,6 +102,7 @@ Sub-grid visual details (2pt padding, 6pt dots, 8pt indicator circles) are accep
 - **Chat history**: Load via `sessions_history` with `includeTools: false` and `limit: 50` on appear. Only user + assistant text messages (no tool calls). Loaded once per chat view lifecycle. Reload button in toolbar re-fetches latest.
 - **Chat safety**: Use message UUID for index lookups during streaming (never captured `Int` index — array may change). `hasPendingSend` flag prevents history reload from overwriting in-flight messages.
 - **Keyboard UX**: `.scrollDismissesKeyboard(.interactively)` on chat scroll view — keyboard follows drag gesture.
+- **Cron schedule parsing**: `CronJob.scheduledTimes(for:)` computes run times for a given day from the cron expression. `parseCronField()` handles `*`, `*/N`, `N`, `N,M`, `N-M`. Interval jobs (`every Xh/Xm`) step from midnight. All client-side, no server calls.
 - **Admin data commands**: `models-status`, `agents-list`, `channels-list` return JSON in stdout. Parse via `JSONDecoder` on the stdout string. `AdminViewModel` fetches all three in parallel using `async let` with `nonisolated` fetch functions for true concurrency.
 - **Provider display**: Extract provider from model string (`anthropic/claude-sonnet-4-6` → "Anthropic"). `ModelRow` in `ModelsSection` shows provider label alongside `ModelPill`.
 

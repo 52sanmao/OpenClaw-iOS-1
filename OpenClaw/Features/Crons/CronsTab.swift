@@ -12,7 +12,6 @@ struct CronsTab: View {
 
     private var jobs: [CronJob] { vm.data ?? [] }
 
-    /// Lookup job name by ID for history rows.
     private var jobNameMap: [String: String] {
         Dictionary(uniqueKeysWithValues: jobs.map { ($0.id, $0.name) })
     }
@@ -25,7 +24,6 @@ struct CronsTab: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Segmented control
                 Picker("", selection: $selectedTab) {
                     ForEach(CronTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -35,7 +33,6 @@ struct CronsTab: View {
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
 
-                // Tab content
                 switch selectedTab {
                 case .jobs:
                     jobsList
@@ -43,7 +40,17 @@ struct CronsTab: View {
                     historyList
                 }
             }
-            .toolbar(.hidden, for: .navigationBar)
+            .navigationTitle("Crons")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    NavigationLink {
+                        ScheduleTimelineView(jobs: jobs)
+                    } label: {
+                        Image(systemName: "calendar")
+                    }
+                }
+            }
             .alert("Run Manually?", isPresented: Binding(
                 get: { jobToRun != nil },
                 set: { if !$0 { jobToRun = nil } }
@@ -77,7 +84,9 @@ struct CronsTab: View {
     @ViewBuilder
     private var jobsList: some View {
         if !jobs.isEmpty {
-            List(jobs) { job in
+            List {
+                Section("Cron Jobs") {
+                ForEach(jobs) { job in
                 CronJobRow(job: job, onRun: { jobToRun = job })
                     .background(
                         NavigationLink("", destination: CronDetailView(
@@ -92,6 +101,8 @@ struct CronsTab: View {
                         ))
                         .opacity(0)
                     )
+                }
+                }
             }
             .listStyle(.insetGrouped)
             .refreshable {
@@ -138,6 +149,7 @@ struct CronsTab: View {
                 )
             } else {
                 List {
+                    Section("Run History") {
                     ForEach(hvm.runs) { run in
                         CronHistoryRow(run: run, jobName: jobNameMap[run.jobId])
                             .background(
@@ -148,6 +160,7 @@ struct CronsTab: View {
                                     }
                                 }
                             )
+                    }
                     }
                 }
                 .listStyle(.insetGrouped)

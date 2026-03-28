@@ -9,7 +9,7 @@ Built with SwiftUI and Swift Concurrency. One dependency: [MarkdownUI](https://g
 | Tab | Description |
 |-----|-------------|
 | **Home** | Dashboard with 6 cards: System Health (live-polling ring gauges), Commands (quick actions with AI investigation), Cron Jobs (last/next run), Token Usage (today/yesterday/7d with model breakdown + tap for deep-dive analytics), Outreach Stats (grid), Blog Pipeline (published + stages). Chat icon (left nav bar) pushes to streaming chat. Settings via toolbar gear. |
-| **Crons** | Segmented: **Cron Jobs** (full job list with status, schedule, manual run) and **History** (all recent runs across jobs, newest first). Tap job → detail view. Tap run → agent execution trace. |
+| **Crons** | Segmented: **Cron Jobs** (full job list with status, schedule, manual run) and **History** (all recent runs across jobs, newest first). Tap job → detail view. Tap run → agent execution trace. Calendar icon → 24-hour schedule timeline. |
 | **Mem & Skills** | Segmented: **Memory** (browse workspace files — memory files, daily logs, reference) and **Skills** (browse skill folders with SKILL.md docs, scripts, configs). Markdown files support paragraph-level comments submitted to the AI agent. Non-markdown files shown read-only in monospace. |
 | **Sessions** | Segmented: **Chat History** (main orchestrator session — newest messages first, full conversation trace) and **Subagents** (all spawned subagent sessions sorted by most recent, tap to view trace). |
 | **More** | Placeholder for future features |
@@ -30,6 +30,15 @@ Built with SwiftUI and Swift Concurrency. One dependency: [MarkdownUI](https://g
 - **Timing** — last run with status + error message, next run with absolute date, consecutive errors
 - **Investigate with AI** — when a job has errors, a bold action button sends the error to the orchestrator agent. The agent checks logs, diagnoses root cause, and fixes the issue if possible. Shows live elapsed timer during investigation, then a structured report (Status/Root Cause/Action Taken/Impact) with copy button. Latest investigation saved locally per job — "Last investigated X ago" link to reopen without re-running.
 - **Run History** — paginated (20 per page). Each entry: status, time, duration, model badge, total tokens, token breakdown bar (input/output/cache). Tap to expand markdown summary. Tap row to open trace.
+
+### Schedule Timeline
+
+Accessible from the Crons tab's calendar icon. Visual 24-hour timeline showing when all cron jobs are scheduled to run today.
+
+- **Job legend** — flow-wrapped colored dots identifying each enabled job
+- **Hourly rows** — each hour shows which jobs run and at what minute
+- **Current hour** — highlighted with blue background and red vertical bar
+- **Cron expression parsing** — client-side computation from cron expressions. Handles `*`, `*/N`, `N`, `N,M`, `N-M` fields and interval-based jobs (`every Xh/Xm`)
 
 ### Token Detail Page
 

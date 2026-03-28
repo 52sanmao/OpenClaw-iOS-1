@@ -91,6 +91,59 @@ struct CronJob: Sendable, Identifiable {
         return scheduleExpr
     }
 
+    /// Compute all scheduled run times for a given day from the cron expression.
+    func scheduledTimes(for date: Date) -> [Date] {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+
+        // Interval-based: "every Xh", "every Xm"
+        if scheduleKind == "every" {
+            return intervalTimes(dayStart: dayStart, cal: cal)
+        }
+
+        let parts = scheduleExpr.split(separator: " ").map(String.init)
+        guard parts.count >= 5 else { return [] }
+
+        let minuteExpr = parts[0]
+        let hourExpr = parts[1]
+
+        let minutes = parseCronField(minuteExpr, range: 0...59)
+        let hours = parseCronField(hourExpr, range: 0...23)
+
+        var times: [Date] = []
+        for h in hours {
+            for m in minutes {
+                if let t = cal.date(bySettingHour: h, minute: m, second: 0, of: dayStart) {
+                    times.append(t)
+                }
+            }
+        }
+        return times.sorted()
+    }
+
+    private func intervalTimes(dayStart: Date, cal: Calendar) -> [Date] {
+        // Parse "every Xh", "every Xm", "every Xs"
+        let expr = scheduleExpr.lowercased()
+        var intervalSeconds: Int?
+        if expr.hasSuffix("h"), let n = Int(expr.dropFirst(6).dropLast()) {
+            intervalSeconds = n * 3600
+        } else if expr.hasSuffix("m"), let n = Int(expr.dropFirst(6).dropLast()) {
+            intervalSeconds = n * 60
+        } else if expr.hasSuffix("s"), let n = Int(expr.dropFirst(6).dropLast()) {
+            intervalSeconds = n
+        }
+        guard let interval = intervalSeconds, interval > 0 else { return [] }
+
+        var times: [Date] = []
+        var t = dayStart
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+        while t < dayEnd {
+            times.append(t)
+            t = t.addingTimeInterval(Double(interval))
+        }
+        return times
+    }
+
     let lastError: String?
 
     init(dto: CronJobDTO) {
@@ -127,6 +180,29 @@ struct CronJob: Sendable, Identifiable {
         case nil:     status = .never
         }
     }
+}
+
+/// Parse a cron field into a set of integer values.
+/// Supports: `*`, `*/N`, `N`, `N,M`, `N-M`
+private func parseCronField(_ field: String, range: ClosedRange<Int>) -> [Int] {
+    if field == "*" {
+        return Array(range)
+    }
+    if field.hasPrefix("*/"), let step = Int(field.dropFirst(2)), step > 0 {
+        return stride(from: range.lowerBound, through: range.upperBound, by: step).map { $0 }
+    }
+    // Comma-separated: "1,5,9"
+    if field.contains(",") {
+        return field.split(separator: ",").compactMap { Int($0) }.filter { range.contains($0) }
+    }
+    // Range: "1-5"
+    if field.contains("-") {
+        let parts = field.split(separator: "-").compactMap { Int($0) }
+        if parts.count == 2 { return Array(parts[0]...parts[1]).filter { range.contains($0) } }
+    }
+    // Single value
+    if let n = Int(field), range.contains(n) { return [n] }
+    return []
 }
 
 private func parseDaysOfWeek(_ expr: String) -> String {
