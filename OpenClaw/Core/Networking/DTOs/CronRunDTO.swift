@@ -2,6 +2,7 @@ import Foundation
 
 struct CronRunsResponseDTO: Decodable, Sendable {
     let entries: [CronRunDTO]
+    let total: Int?
 }
 
 struct CronRunDTO: Decodable, Sendable {

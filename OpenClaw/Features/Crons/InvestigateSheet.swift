@@ -25,7 +25,7 @@ struct InvestigateSheet: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(Spacing.xl)
-                } else if let error = vm.investigateError {
+                } else if let error = vm.investigationError {
                     ContentUnavailableView(
                         "Investigation Failed",
                         systemImage: "exclamationmark.triangle",

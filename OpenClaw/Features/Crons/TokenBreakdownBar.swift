@@ -39,7 +39,7 @@ struct TokenBreakdownBar: View {
         let proportion = total > 0 ? CGFloat(value) / CGFloat(total) : 0
         return Rectangle()
             .fill(color)
-            .frame(width: max(proportion * width, 2))
+            .frame(width: max(proportion * width, value > 0 ? 2 : 0))
     }
 }
 

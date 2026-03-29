@@ -56,7 +56,10 @@ struct HomeView: View {
                     NavigationLink {
                         ChatTab(client: client)
                     } label: {
-                        Image(systemName: "bubble.left.and.bubble.right")
+                        Image("openclaw")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {

@@ -11,6 +11,8 @@ struct CronJob: Sendable, Identifiable {
     let lastRun: Date?
     let status: RunStatus
     let consecutiveErrors: Int
+    let configuredModel: String?
+    let taskDescription: String?
 
     enum RunStatus: Sendable {
         case succeeded, failed, unknown, never
@@ -179,6 +181,9 @@ struct CronJob: Sendable, Identifiable {
         case .some:   status = .unknown
         case nil:     status = .never
         }
+
+        configuredModel = dto.payload?.model
+        taskDescription = dto.payload?.message?.split(separator: "\n").first.map(String.init)
     }
 }
 

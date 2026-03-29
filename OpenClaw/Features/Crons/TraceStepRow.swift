@@ -66,6 +66,10 @@ struct TraceStepRow: View {
         if !pills.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.xs) {
+                    // Model pill with provider icon (separate from metadata pills)
+                    if let model = step.model {
+                        ModelPill(model: model)
+                    }
                     ForEach(pills, id: \.label) { pill in
                         HStack(spacing: Spacing.xxs) {
                             Image(systemName: pill.icon)
@@ -91,14 +95,6 @@ struct TraceStepRow: View {
 
     private var metadataPills: [MetadataPill] {
         var pills: [MetadataPill] = []
-
-        if let model = step.model {
-            pills.append(MetadataPill(icon: "cpu", label: Formatters.modelShortName(model), color: AppColors.pillForeground))
-        }
-
-        if let provider = step.provider {
-            pills.append(MetadataPill(icon: "server.rack", label: provider, color: AppColors.neutral))
-        }
 
         if let stop = step.stopReason {
             let color: Color = stop == "stop" ? AppColors.success : stop == "toolUse" ? AppColors.metricWarm : AppColors.neutral
@@ -133,12 +129,12 @@ struct TraceStepRow: View {
     @ViewBuilder
     private var previewText: some View {
         switch step.kind {
-        case .systemPrompt(let text): Text(text.prefix(120))
-        case .userPrompt(let text):   Text(text.prefix(120))
-        case .thinking(let text):     Text(text.prefix(120))
-        case .text(let text):         Text(text.prefix(120))
-        case .toolCall(_, _, let args):        Text(args.prefix(120))
-        case .toolResult(_, _, let output, _): Text(output.prefix(120))
+        case .systemPrompt(let text): Text(text)
+        case .userPrompt(let text):   Text(text)
+        case .thinking(let text):     Text(text)
+        case .text(let text):         Text(text)
+        case .toolCall(_, _, let args):        Text(args)
+        case .toolResult(_, _, let output, _): Text(output)
         }
     }
 

@@ -68,7 +68,7 @@ struct TokenChartSection: View {
             Chart(paidModels) { model in
                 BarMark(
                     x: .value("Cost", model.costUsd),
-                    y: .value("Model", Formatters.modelShortName(model.model))
+                    y: .value("Model", Formatters.modelShortName(model.fullModel))
                 )
                 .foregroundStyle(AppColors.metricWarm)
                 .annotation(position: .trailing) {

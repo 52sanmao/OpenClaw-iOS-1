@@ -103,6 +103,27 @@ struct CronDetailView: View {
                 }
             }
 
+            // MARK: - About
+            if vm.job.configuredModel != nil || vm.job.taskDescription != nil {
+                Section("About") {
+                    if let model = vm.job.configuredModel {
+                        LabeledContent("Model") {
+                            ModelPill(model: model)
+                        }
+                    }
+                    if let task = vm.job.taskDescription {
+                        Text(task)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
+
+            // MARK: - Run Stats
+            if let stats = vm.stats {
+                CronStatsSection(stats: stats)
+            }
+
             // MARK: - Run History
             Section {
                 if vm.isLoading && vm.runs.isEmpty {
@@ -154,7 +175,10 @@ struct CronDetailView: View {
             } header: {
                 HStack {
                     Text("Run History")
-                    if !vm.runs.isEmpty {
+                    if let total = vm.totalRuns {
+                        Text("(\(total) total)")
+                            .foregroundStyle(AppColors.neutral)
+                    } else if !vm.runs.isEmpty {
                         Text("(\(vm.runs.count))")
                             .foregroundStyle(AppColors.neutral)
                     }
@@ -237,9 +261,10 @@ struct CronDetailView: View {
             isPresented: $showDisableConfirmation
         ) {
             Button(vm.job.enabled ? "Disable" : "Enable", role: vm.job.enabled ? .destructive : nil) {
+                let wasEnabled = vm.job.enabled
                 Task {
                     await vm.toggleEnabled()
-                    dismiss()
+                    if wasEnabled { dismiss() }
                 }
             }
             Button("Cancel", role: .cancel) {}

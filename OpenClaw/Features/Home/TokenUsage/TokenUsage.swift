@@ -45,6 +45,9 @@ struct TokenUsage: Sendable {
         var id: String { "\(model)-\(provider)" }
         let model: String
         let provider: String
+
+        /// Full model string with provider prefix for display (e.g. "anthropic/claude-sonnet-4-6").
+        var fullModel: String { "\(provider)/\(model)" }
         let inputTokens: Int
         let outputTokens: Int
         let cacheReadTokens: Int

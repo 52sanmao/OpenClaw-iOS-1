@@ -16,14 +16,9 @@ private struct ModelDetailRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            // Header: name + provider + cost
+            // Header: name + cost
             HStack(spacing: Spacing.xs) {
-                ModelPill(model: model.model)
-
-                Text(model.provider)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
-
+                ModelPill(model: model.fullModel)
                 Spacer()
 
                 Text(model.costUsd > 0 ? Formatters.cost(model.costUsd) : "Included")

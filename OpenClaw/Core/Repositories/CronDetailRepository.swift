@@ -3,6 +3,7 @@ import Foundation
 struct CronRunsPage: Sendable {
     let runs: [CronRun]
     let hasMore: Bool
+    let total: Int?
 }
 
 protocol CronDetailRepository: Sendable {
@@ -24,7 +25,7 @@ final class RemoteCronDetailRepository: CronDetailRepository {
         let body = CronRunsToolRequest(args: .init(jobId: jobId, limit: limit, offset: offset))
         let response: CronRunsResponseDTO = try await client.invoke(body)
         let runs = response.entries.map(CronRun.init)
-        return CronRunsPage(runs: runs, hasMore: runs.count >= limit)
+        return CronRunsPage(runs: runs, hasMore: runs.count >= limit, total: response.total)
     }
 
 
@@ -36,19 +37,15 @@ final class RemoteCronDetailRepository: CronDetailRepository {
 
     func triggerRun(jobId: String) async throws {
         let body = CronJobToolRequest(args: .init(action: "run", jobId: jobId))
-        let _: CronRunTriggerResponse = try await client.invoke(body)
+        let _: OkResponse = try await client.invoke(body)
     }
 
     func setEnabled(jobId: String, enabled: Bool) async throws {
         let body = CronUpdateToolRequest(args: .init(jobId: jobId, patch: .init(enabled: enabled)))
-        let _: CronUpdateResponse = try await client.invoke(body)
+        let _: OkResponse = try await client.invoke(body)
     }
 }
 
-private struct CronRunTriggerResponse: Decodable {
-    let ok: Bool?
-}
-
-private struct CronUpdateResponse: Decodable {
+private struct OkResponse: Decodable {
     let ok: Bool?
 }

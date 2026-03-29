@@ -9,7 +9,6 @@ struct CronRun: Sendable, Identifiable {
     let summary: String?
     let runAt: Date
     let duration: TimeInterval
-    let nextRun: Date?
     let model: String?
     let inputTokens: Int
     let outputTokens: Int
@@ -41,7 +40,6 @@ struct CronRun: Sendable, Identifiable {
         summary = dto.summary
         runAt = Date(timeIntervalSince1970: Double(dto.runAtMs) / 1000)
         duration = Double(dto.durationMs)
-        nextRun = dto.nextRunAtMs.map { Date(timeIntervalSince1970: Double($0) / 1000) }
         model = dto.model
         inputTokens = dto.usage?.inputTokens ?? 0
         outputTokens = dto.usage?.outputTokens ?? 0

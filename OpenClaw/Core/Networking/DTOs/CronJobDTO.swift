@@ -11,6 +11,12 @@ struct CronJobDTO: Decodable, Sendable {
     let enabled: Bool
     let schedule: Schedule
     let state: State
+    let payload: Payload?
+
+    struct Payload: Decodable, Sendable {
+        let model: String?
+        let message: String?
+    }
 
     struct Schedule: Decodable, Sendable {
         let kind: String

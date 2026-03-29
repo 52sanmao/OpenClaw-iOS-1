@@ -84,17 +84,10 @@ struct ModelsSection: View {
     }
 }
 
-/// Row showing a label + provider + model pill.
+/// Row showing a label + model pill (pill includes provider icon).
 private struct ModelRow: View {
     let label: String
     let model: String
-
-    private var provider: String? {
-        guard model.contains("/") else { return nil }
-        return String(model.split(separator: "/").first ?? "")
-            .replacingOccurrences(of: "github-copilot", with: "Copilot")
-            .replacingOccurrences(of: "anthropic", with: "Anthropic")
-    }
 
     var body: some View {
         HStack(spacing: Spacing.xs) {
@@ -102,11 +95,6 @@ private struct ModelRow: View {
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.neutral)
             Spacer()
-            if let provider {
-                Text(provider)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
-            }
             ModelPill(model: model)
         }
     }

@@ -185,7 +185,7 @@ private struct ModelBreakdownSection: View {
             if isExpanded {
                 ForEach(models) { model in
                     HStack(spacing: Spacing.xs) {
-                        ModelPill(model: model.model)
+                        ModelPill(model: model.fullModel)
 
                         Spacer()
 

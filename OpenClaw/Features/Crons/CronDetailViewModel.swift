@@ -12,10 +12,50 @@ final class CronDetailViewModel {
     var isTogglingEnabled = false
     var hasMore = true
 
+    var totalRuns: Int?
+
     var isInvestigating = false
     var investigateResult: ChatCompletionResponse?
-    var investigateError: Error?
+    var investigationError: Error?
     var previousInvestigation: SavedInvestigation?
+
+    // MARK: - Run Stats (computed from loaded runs)
+
+    var stats: RunStats? {
+        guard !runs.isEmpty else { return nil }
+        return RunStats(runs: runs)
+    }
+
+    struct RunStats {
+        let avgDuration: TimeInterval
+        let avgTokens: Int
+        let totalTokens: Int
+        let successRate: Double
+        let primaryModel: String?
+        let runCount: Int
+
+        init(runs: [CronRun]) {
+            runCount = runs.count
+            avgDuration = runs.map(\.duration).reduce(0, +) / Double(runCount)
+            totalTokens = runs.map(\.totalTokens).reduce(0, +)
+            avgTokens = totalTokens / runCount
+            let succeeded = runs.filter { $0.status == .succeeded }.count
+            successRate = Double(succeeded) / Double(runCount)
+
+            // Most frequent model
+            var modelCounts: [String: Int] = [:]
+            for run in runs {
+                if let m = run.model { modelCounts[m, default: 0] += 1 }
+            }
+            primaryModel = modelCounts.max(by: { $0.value < $1.value })?.key
+        }
+
+        var avgDurationFormatted: String {
+            let seconds = Int(avgDuration / 1000)
+            if seconds < 60 { return "\(seconds)s" }
+            return "\(seconds / 60)m \(seconds % 60)s"
+        }
+    }
 
     private(set) var job: CronJob
     private let repository: CronDetailRepository
@@ -45,6 +85,7 @@ final class CronDetailViewModel {
             let result = try await repository.fetchRuns(jobId: job.id, limit: Self.pageSize, offset: 0)
             runs = result.runs
             hasMore = result.hasMore
+            totalRuns = result.total
             error = nil
         } catch {
             self.error = error
@@ -98,7 +139,7 @@ final class CronDetailViewModel {
 
     func investigateError() async {
         isInvestigating = true
-        investigateError = nil
+        investigationError = nil
         investigateResult = nil
 
         let prompt = PromptTemplates.investigateCronError(
@@ -133,7 +174,7 @@ final class CronDetailViewModel {
 
             Haptics.shared.success()
         } catch {
-            investigateError = error
+            investigationError = error
             Haptics.shared.error()
         }
         isInvestigating = false

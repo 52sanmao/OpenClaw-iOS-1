@@ -34,6 +34,7 @@ struct ChannelsSection: View {
                 ForEach(status.providers) { provider in
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack {
+                            ProviderIcon(provider: provider.id, size: 18)
                             Text(provider.displayName)
                                 .font(AppTypography.body)
                                 .fontWeight(.medium)
