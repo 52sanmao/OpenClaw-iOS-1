@@ -4,11 +4,13 @@ struct CommandsDetailView: View {
     @State var commandsVM: CommandsViewModel
     @State private var adminVM: AdminViewModel
     @State private var commandToConfirm: QuickCommand?
+    private let client: GatewayClientProtocol
 
     private let columns = QuickCommand.gridColumns
 
     init(commandsVM: CommandsViewModel, client: GatewayClientProtocol) {
         self.commandsVM = commandsVM
+        self.client = client
         _adminVM = State(initialValue: AdminViewModel(client: client))
     }
 
@@ -56,6 +58,15 @@ struct CommandsDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Commands & Admin")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    ToolsConfigView(client: client)
+                } label: {
+                    Image(systemName: "wrench.and.screwdriver")
+                }
+            }
+        }
         .refreshable {
             await adminVM.load()
             Haptics.shared.refreshComplete()

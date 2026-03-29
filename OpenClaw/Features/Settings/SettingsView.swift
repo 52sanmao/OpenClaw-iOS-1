@@ -6,37 +6,47 @@ struct SettingsView: View {
     @State private var showTokenSetup = false
     @State private var isTesting = false
     @State private var testResult: TestResult?
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Form {
+        List {
+            // Auth
             Section {
-                if keychain.hasToken {
-                    LabeledContent("Token") {
-                        Label("Configured", systemImage: "checkmark.circle.fill")
+                HStack(spacing: Spacing.xs) {
+                    Image(systemName: keychain.hasToken ? "lock.fill" : "lock.open")
+                        .foregroundStyle(keychain.hasToken ? AppColors.success : AppColors.danger)
+                    Text("Bearer Token")
+                    Spacer()
+                    if keychain.hasToken {
+                        Text("Configured")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.success)
-                    }
-                    Button("Replace Token\u{2026}", role: .destructive) {
-                        showTokenSetup = true
-                    }
-                } else {
-                    Button("Set Bearer Token\u{2026}") {
-                        showTokenSetup = true
+                    } else {
+                        Text("Not Set")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.danger)
                     }
                 }
+
+                Button {
+                    showTokenSetup = true
+                } label: {
+                    Text(keychain.hasToken ? "Replace Token\u{2026}" : "Set Token\u{2026}")
+                }
             } header: {
-                Text("Gateway Auth")
+                Text("Authentication")
             } footer: {
-                Text("Token is stored in the device Keychain and is never written to UserDefaults or iCloud.")
+                Text("Stored in the device Keychain. Never written to UserDefaults or iCloud.")
                     .font(AppTypography.micro)
             }
 
+            // Gateway info
             Section("Gateway") {
                 LabeledContent("URL", value: "api.appwebdev.co.uk")
-                LabeledContent("TLS", value: "Let\u{2019}s Encrypt (auto-renewal)")
+                LabeledContent("Agent", value: AppConstants.agentId.capitalized)
+                LabeledContent("TLS", value: "Auto-renewal")
             }
 
+            // Connection test
             Section {
                 Button(action: runConnectionTest) {
                     HStack {
@@ -56,10 +66,17 @@ struct SettingsView: View {
             } header: {
                 Text("Diagnostics")
             } footer: {
-                Text("Fires a live system-stats request and shows the raw server response.")
+                Text("Sends a live request to the gateway and shows the server response.")
                     .font(AppTypography.micro)
             }
+
+            // App info
+            Section("About") {
+                LabeledContent("App", value: "OpenClaw")
+                LabeledContent("Platform", value: "iOS 17+")
+            }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showTokenSetup) {

@@ -67,10 +67,17 @@ struct HomeView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        SettingsView(keychain: keychain)
-                    } label: {
-                        Image(systemName: "gear")
+                    HStack(spacing: Spacing.sm) {
+                        NavigationLink {
+                            ToolsConfigView(client: client)
+                        } label: {
+                            Image(systemName: "wrench.and.screwdriver")
+                        }
+                        NavigationLink {
+                            SettingsView(keychain: keychain)
+                        } label: {
+                            Image(systemName: "gear")
+                        }
                     }
                 }
             }
