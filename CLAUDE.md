@@ -60,7 +60,9 @@ Sub-grid visual details (2pt padding, 6pt dots, 8pt indicator circles) are accep
 
 - `CronStatusDot` / `CronStatusBadge` — reused across cron list, detail, and trace. Badge supports `.small` and `.large` styles.
 - `TokenBreakdownBar` / `TokenLegendItem` — proportional bar + legend (input/output/cache split). `TokenLegendItem` is shared across all token bar variants.
-- `ModelPill` — capsule badge for model names. Uses `Formatters.modelShortName()`. Used in 6+ places.
+- `ModelPill` — capsule badge with `ProviderIcon` + model name. Uses `Formatters.modelShortName()`. Used in 10+ places.
+- `ProviderIcon` — maps provider strings to custom image assets (claude, github, openai, gemini, openclaw). Infers provider from model name when no `/` prefix (e.g. `claude-sonnet-4-6` → anthropic). Falls back to SF Symbol `cpu` for unknown providers.
+- `DetailTitleView` — shared inline nav bar title with subtitle. Used on Home ("All systems OK"), Crons ("12 jobs · 2 failed"), Mem & Skills ("8 files · 10 skills"), Sessions ("Running · 149k"), and cron detail (job name + status badge).
 - `CopyButton` / `CopyToolbarButton` — full-width copy button with success state, and toolbar icon variant.
 - `CardContainer`, `CardLoadingView`, `CardErrorView` — dashboard card shells.
 - `CommandButton` — reusable quick action button with icon, label, loading state.
@@ -76,7 +78,8 @@ Sub-grid visual details (2pt padding, 6pt dots, 8pt indicator circles) are accep
 
 ## Conventions
 
-- **New features**: DTO in `Core/Networking/DTOs/`, domain model in feature folder with `init(dto:)`, repository protocol + `Remote*` in `Core/Repositories/`, VM subclass of `LoadableViewModel<T>`, view using `CardContainer` for dashboard cards.
+- **New features**: DTO in `Core/Networking/DTOs/` (never in feature folders), domain model in feature folder with `init(dto:)`, repository protocol + `Remote*` in `Core/Repositories/`, VM subclass of `LoadableViewModel<T>`, view using `CardContainer` for dashboard cards.
+- **Detail page titles**: Use `DetailTitleView` with `.toolbar(placement: .principal)` + `.navigationBarTitleDisplayMode(.inline)`. Title + dynamic subtitle (status, counts, etc.).
 - **Concurrency**: `@MainActor` on all ViewModels. `@Sendable` closures for loaders. Actor-based `MemoryCache`. No `@unchecked Sendable`.
 - **Logging**: `os.Logger` (subsystem: `co.uk.appwebdev.openclaw`), never `print()`.
 - **Accessibility**: All custom visual components need `.accessibilityElement` + `.accessibilityLabel`.

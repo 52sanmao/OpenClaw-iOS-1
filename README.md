@@ -1,8 +1,8 @@
 # OpenClaw
 
-A native iOS control room for the OpenClaw AI gateway. Monitor system health, run commands, manage cron jobs, inspect agent execution traces, track token usage, browse agent memory and skills — all from your phone.
+A native iOS control room for the OpenClaw AI gateway. Monitor system health, run commands, manage cron jobs, inspect agent execution traces, track token usage, browse agent memory and skills, chat with your orchestrator agent — all from your phone.
 
-Built with SwiftUI and Swift Concurrency. One dependency: [MarkdownUI](https://github.com/gonzalezreal/swift-markdown-ui) for rendering LLM markdown output.
+Built with SwiftUI, Swift Concurrency, and Charts. 119 files, ~9,000 lines. One external dependency: [MarkdownUI](https://github.com/gonzalezreal/swift-markdown-ui) for rendering LLM markdown output.
 
 ## Screens
 

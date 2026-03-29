@@ -23,6 +23,8 @@ struct TokenBreakdownBar: View {
             }
             .frame(height: 6)
             .clipShape(Capsule())
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Tokens: \(Formatters.tokens(input)) in, \(Formatters.tokens(output)) out")
 
             HStack(spacing: Spacing.sm) {
                 TokenLegendItem(color: AppColors.metricPrimary, label: "In", value: input)

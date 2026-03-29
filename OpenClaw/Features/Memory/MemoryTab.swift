@@ -12,7 +12,7 @@ struct MemoryTab: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("", selection: $selectedTab) {
+                Picker("View", selection: $selectedTab) {
                     ForEach(WorkspaceTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
                     }

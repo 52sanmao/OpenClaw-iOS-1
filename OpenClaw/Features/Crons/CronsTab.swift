@@ -24,7 +24,7 @@ struct CronsTab: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("", selection: $selectedTab) {
+                Picker("View", selection: $selectedTab) {
                     ForEach(CronTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
                     }
