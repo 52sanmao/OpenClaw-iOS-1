@@ -106,13 +106,11 @@ Models & Config (provider icons, fallbacks, aliases). Channels (status dots, pro
 
 The app communicates with your gateway through a **stats server skill** that needs to be installed first. This skill exposes the `/stats/*` endpoints and `/stats/exec` commands that the app depends on.
 
-```bash
-# In your OpenClaw workspace, install the stats server skill
-openclaw skills add ios-stats-server
+Just ask your agent:
 
-# Or manually create the skill in your skills folder:
-# ~/.openclaw/workspace/<agent>/skills/ios-stats-server/
-```
+> "Set me up for the iOS app"
+
+The `ios-setup` skill will detect your environment, deploy the stats server, configure auto-restart, and walk you through exposing your gateway (nginx, Tailscale, or local network).
 
 The skill provides:
 - `GET /stats/system` — system health (CPU, RAM, disk)
