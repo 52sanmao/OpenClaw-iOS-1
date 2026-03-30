@@ -111,7 +111,13 @@ Just ask your agent:
 
 > "Set me up for the iOS app"
 
-The `ios-setup` skill will detect your environment, deploy the stats server, configure auto-restart, and walk you through exposing your gateway (nginx, Tailscale, or local network).
+The `skill-ios-setup` skill will detect your environment, deploy the stats server, configure auto-restart, and walk you through exposing your gateway (nginx, Tailscale, or local network).
+
+Install it first if you don't have it:
+
+```bash
+openclaw skills install skill-ios-setup
+```
 
 The skill provides:
 - `GET /stats/system` — system health (CPU, RAM, disk)
