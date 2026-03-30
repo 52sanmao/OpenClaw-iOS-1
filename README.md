@@ -119,6 +119,8 @@ Install it first if you don't have it:
 openclaw skills install skill-ios-setup
 ```
 
+> Available on [ClawHub](https://clawhub.ai) — search `skill-ios-setup`.
+
 The skill provides:
 - `GET /stats/system` — system health (CPU, RAM, disk)
 - `GET /stats/tokens` — token usage analytics
