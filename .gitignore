@@ -1,6 +1,16 @@
 # Docs
 openclaw-docs/
 
+# OpenClaw config (contains gateway token)
+openclaw.json
+
+# Workspace secrets
+workspace/**/.env
+
+# Workspace generated files
+workspace/**/__pycache__/
+workspace/**/*.pyc
+
 # Xcode
 build/
 DerivedData/

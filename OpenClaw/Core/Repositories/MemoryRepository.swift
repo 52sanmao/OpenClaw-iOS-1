@@ -23,12 +23,16 @@ final class RemoteMemoryRepository: MemoryRepository {
     }
 
     func listFiles() async throws -> [MemoryFile] {
+        logger.debug("memory-list with workspaceRoot: \(self.workspaceRoot)")
         let response = try await exec("memory-list", args: workspaceRoot)
+        logger.debug("memory-list stdout: \(response.stdout?.prefix(200) ?? "nil"), exitCode: \(response.exitCode ?? -1)")
         return MemoryFile.parse(stdout: response.stdout ?? "")
     }
 
     func listSkills() async throws -> [SkillFile] {
+        logger.debug("skills-list with workspaceRoot: \(self.workspaceRoot)")
         let response = try await exec("skills-list", args: workspaceRoot)
+        logger.debug("skills-list stdout: \(response.stdout?.prefix(200) ?? "nil"), exitCode: \(response.exitCode ?? -1)")
         return SkillFile.parse(stdout: response.stdout ?? "")
     }
 
