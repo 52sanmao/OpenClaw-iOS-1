@@ -30,37 +30,27 @@ jobs:
             -project "OpenClaw.xcodeproj" \
             -scheme "OpenClaw"
 
-      - name: Build for iOS (Archive)
+      - name: Build for iOS (No Archive)
         run: |
           set -euo pipefail
           xcodebuild \
             -project "OpenClaw.xcodeproj" \
             -scheme "OpenClaw" \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/OpenClaw.xcarchive" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            archive
+            build
 
-      - name: Create IPA from xcarchive
+      - name: Create IPA from app
         run: |
           set -euo pipefail
-          APP_PATH=$(find "$RUNNER_TEMP/OpenClaw.xcarchive/Products" -name "*.app" -type d | head -1)
+          APP_PATH=$(find "$RUNNER_TEMP/DerivedData" -name "*.app" -type d | head -1)
           if [ -z "$APP_PATH" ]; then
-            echo "No .app found, trying alternate build..."
-            xcodebuild \
-              -project "OpenClaw.xcodeproj" \
-              -scheme "OpenClaw" \
-              -configuration Release \
-              -sdk iphoneos \
-              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-              CODE_SIGNING_ALLOWED=NO \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              build
-            APP_PATH=$(find "$RUNNER_TEMP/DerivedData" -name "*.app" -type d | head -1)
+            echo "No .app found"
+            exit 1
           fi
           mkdir -p "$RUNNER_TEMP/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
