@@ -59,6 +59,7 @@ enum GatewayError: LocalizedError {
     case noToken
     case noBaseURL
     case invalidResponse
+    case controlPageReturned(path: String)
     case httpError(Int, body: String)
     case serverError(Int, type: String, message: String)
     case emptyContent
@@ -72,6 +73,8 @@ enum GatewayError: LocalizedError {
             return "未配置网关地址。请到设置中填写网关地址。"
         case .invalidResponse:
             return "网关返回了无效响应。"
+        case .controlPageReturned(let path):
+            return "当前地址返回的是 OpenClaw 控制页面，不是 API 根地址。请改用真正提供 /\(path) 接口的服务地址，而不要填写控制台页面路径。"
         case .httpError(let code, let body):
             return "网关 HTTP \(code)。响应内容：\(body.isEmpty ? "（空）" : body)"
         case .serverError(let code, _, let message):

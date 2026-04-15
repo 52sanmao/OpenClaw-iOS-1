@@ -31,7 +31,7 @@ struct AddAccountView: View {
             VStack(spacing: Spacing.xs) {
                 Text(accountStore.accounts.isEmpty ? "连接网关" : "添加账号")
                     .font(AppTypography.screenTitle)
-                Text("请输入你的网关地址和 Bearer Token。")
+                Text("请输入真正提供 API 的服务地址和 Bearer Token，不要填写只会打开控制台页面的 URL。")
                     .font(AppTypography.body)
                     .foregroundStyle(AppColors.neutral)
                     .multilineTextAlignment(.center)
@@ -52,7 +52,7 @@ struct AddAccountView: View {
                     Text("网关地址")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
-                    TextField("http://1.14.110.36:17126/f5gxy9", text: $urlInput)
+                    TextField("https://gateway.example.com", text: $urlInput)
                         #if os(iOS)
                         .textContentType(.URL)
                         .keyboardType(.URL)
@@ -61,6 +61,9 @@ struct AddAccountView: View {
                         .autocorrectionDisabled()
                         .padding(Spacing.sm)
                         .background(AppColors.neutral.opacity(0.1), in: RoundedRectangle(cornerRadius: AppRadius.md))
+                    Text("OpenClaw-ios 走 HTTP API。这里应填写 API 根地址；如果这个地址打开后只返回控制台 HTML，聊天、工具和 stats 都会失败。")
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.neutral)
                 }
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -139,14 +142,15 @@ struct AddAccountView: View {
     private func save() {
         isSaving = true
         errorMessage = nil
+        let normalizedURL = GatewayAccount.normalizeBaseURL(urlInput)
         let name = nameInput.trimmingCharacters(in: .whitespaces)
-        let finalName = name.isEmpty ? (URL(string: urlInput)?.host() ?? "网关") : name
+        let finalName = name.isEmpty ? (URL(string: normalizedURL)?.host() ?? "网关") : name
 
         do {
             let agent = agentIdInput.trimmingCharacters(in: .whitespaces)
             try accountStore.add(
                 name: finalName,
-                url: urlInput,
+                url: normalizedURL,
                 token: tokenInput,
                 agentId: agent.isEmpty ? "orchestrator" : agent,
                 workspacePath: workspacePathInput

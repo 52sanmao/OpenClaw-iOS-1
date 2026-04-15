@@ -54,16 +54,6 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
         return try JSONDecoder.snakeCase.decode(Response.self, from: data)
     }
 
-    // MARK: - WebSocket Communication
-
-    /// Sends a request via WebSocket for privileged operations (e.g., gateway tools).
-    func sendWSRequest<Body: Encodable, Response: Decodable>(_ method: String, params: Body) async throws -> Response {
-        let requestBody = try JSONEncoder().encode(params)
-        return try await invokeRaw(method: method, body: requestBody)
-    }
-
-
-
     func invoke<Body: Encodable, Response: Decodable>(_ body: Body) async throws -> Response {
         let requestBody = try JSONEncoder().encode(body)
         return try await invokeRaw(method: "invoke", body: requestBody)
@@ -187,13 +177,32 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
 
     private func validateHTTPResponse(_ response: URLResponse, data: Data, path: String) throws {
         guard let http = response as? HTTPURLResponse else { throw GatewayError.invalidResponse }
-        guard (200...299).contains(http.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            if let envelope = try? JSONDecoder().decode(GatewayErrorEnvelope.self, from: data), let err = envelope.error {
-                throw GatewayError.serverError(http.statusCode, type: err.type, message: err.message)
+        let body = String(data: data, encoding: .utf8) ?? ""
+
+        if (200...299).contains(http.statusCode) {
+            if isLikelyControlPage(body, response: http) {
+                throw GatewayError.controlPageReturned(path: path)
             }
-            throw GatewayError.httpError(http.statusCode, body: body)
+            return
         }
+
+        if let envelope = try? JSONDecoder().decode(GatewayErrorEnvelope.self, from: data), let err = envelope.error {
+            throw GatewayError.serverError(http.statusCode, type: err.type, message: err.message)
+        }
+        throw GatewayError.httpError(http.statusCode, body: body)
+    }
+
+    private func isLikelyControlPage(_ body: String, response: HTTPURLResponse) -> Bool {
+        let contentType = response.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+        let sample = body.prefix(512).lowercased()
+        guard contentType.contains("text/html") || sample.contains("<!doctype html") || sample.contains("<html") else {
+            return false
+        }
+
+        return sample.contains("openclaw") ||
+               sample.contains("control ui") ||
+               sample.contains("<head") ||
+               sample.contains("<body")
     }
 }
 

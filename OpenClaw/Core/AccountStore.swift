@@ -14,7 +14,20 @@ struct GatewayAccount: Codable, Identifiable, Sendable {
     var workspacePath: String
 
     var displayURL: String {
-        URL(string: url)?.host() ?? url
+        guard let components = URLComponents(string: url) else { return url }
+        let host = components.host ?? url
+        let path = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return path.isEmpty ? host : "\(host)/\(path)"
+    }
+
+    static func normalizeBaseURL(_ raw: String) -> String {
+        var cleanURL = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanURL.isEmpty else { return cleanURL }
+        if cleanURL.hasSuffix("/") { cleanURL = String(cleanURL.dropLast()) }
+        if !cleanURL.lowercased().hasPrefix("http://") && !cleanURL.lowercased().hasPrefix("https://") {
+            cleanURL = "https://\(cleanURL)"
+        }
+        return cleanURL
     }
 
     /// Resolved workspace root used in prompts.
@@ -73,9 +86,7 @@ final class AccountStore {
     // MARK: - Add
 
     func add(name: String, url: String, token: String, agentId: String = "orchestrator", workspacePath: String = "") throws {
-        var cleanURL = url.trimmingCharacters(in: .whitespaces)
-        if cleanURL.hasSuffix("/") { cleanURL = String(cleanURL.dropLast()) }
-        if !cleanURL.hasPrefix("http") { cleanURL = "https://\(cleanURL)" }
+        let cleanURL = GatewayAccount.normalizeBaseURL(url)
 
         var cleanWS = workspacePath.trimmingCharacters(in: .whitespaces)
         if !cleanWS.isEmpty && !cleanWS.hasSuffix("/") { cleanWS += "/" }
@@ -153,8 +164,9 @@ final class AccountStore {
         guard let urlStr = UserDefaults.standard.string(forKey: "gateway_base_url"),
               let token = KeychainService.readLegacyToken() else { return }
 
-        let host = URL(string: urlStr)?.host() ?? "Gateway"
-        let account = GatewayAccount(name: host, url: urlStr)
+        let normalizedURL = GatewayAccount.normalizeBaseURL(urlStr)
+        let host = URL(string: normalizedURL)?.host() ?? "Gateway"
+        let account = GatewayAccount(name: host, url: normalizedURL)
         try? KeychainService.saveToken(token, forAccount: account.id)
         accounts.append(account)
         activeAccountId = account.id
