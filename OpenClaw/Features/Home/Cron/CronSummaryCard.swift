@@ -21,7 +21,7 @@ struct CronSummaryCard: View {
 
     var body: some View {
         CardContainer(
-            title: "Cron Jobs",
+            title: "定时任务",
             systemImage: "clock.arrow.2.circlepath",
             isStale: vm.isStale,
             isLoading: vm.isLoading && jobs.isEmpty
@@ -31,7 +31,7 @@ struct CronSummaryCard: View {
                     HStack(spacing: Spacing.sm) {
                         // Last Run
                         CronMiniStat(
-                            heading: "LAST RUN",
+                            heading: "最近运行",
                             icon: lastRunIcon,
                             iconColor: lastRunColor,
                             title: lastRan?.name ?? "\u{2014}",
@@ -43,7 +43,7 @@ struct CronSummaryCard: View {
 
                         // Next Up
                         CronMiniStat(
-                            heading: "NEXT UP",
+                            heading: "下次运行",
                             icon: "arrow.right.circle.fill",
                             iconColor: AppColors.info,
                             title: nextUp?.name ?? "\u{2014}",
@@ -53,13 +53,13 @@ struct CronSummaryCard: View {
 
                     // Job count footer
                     HStack {
-                        Text("\(jobs.count) jobs")
+                        Text("\(jobs.count) 个任务")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
 
                         let failedCount = jobs.filter { $0.status == .failed }.count
                         if failedCount > 0 {
-                            Text("\u{00B7} \(failedCount) failed")
+                            Text("\u{00B7} \(failedCount) 个失败")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.danger)
                         }
@@ -72,7 +72,7 @@ struct CronSummaryCard: View {
             } else if let err = vm.error {
                 CardErrorView(error: err, minHeight: 60)
             } else {
-                Text("No cron jobs configured.")
+                Text("尚未配置定时任务。")
                     .font(AppTypography.body)
                     .foregroundStyle(AppColors.neutral)
                     .frame(maxWidth: .infinity, minHeight: 44)

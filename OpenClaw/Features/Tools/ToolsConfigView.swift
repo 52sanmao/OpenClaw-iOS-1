@@ -21,7 +21,7 @@ struct ToolsConfigView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Tools & MCP")
+        .navigationTitle("工具与 MCP")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if !vm.mcpServers.isEmpty {
@@ -47,7 +47,7 @@ struct ToolsConfigView: View {
     private func nativeToolsSection(_ config: ToolsConfig) -> some View {
         Section {
             HStack {
-                Text("Profile")
+                Text("配置档")
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.neutral)
                 Spacer()
@@ -60,14 +60,14 @@ struct ToolsConfigView: View {
             }
 
             if !config.allow.isEmpty {
-                LabeledContent("Allow") {
+                LabeledContent("允许") {
                     Text(config.allow.joined(separator: ", "))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.success)
                 }
             }
             if !config.deny.isEmpty {
-                LabeledContent("Deny") {
+                LabeledContent("拒绝") {
                     Text(config.deny.joined(separator: ", "))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.danger)
@@ -75,7 +75,7 @@ struct ToolsConfigView: View {
             }
         } header: {
             HStack {
-                Text("Native Tools")
+                Text("原生工具")
                 let count = config.groups.reduce(0) { $0 + $1.tools.count }
                 Text("(\(count))")
                     .foregroundStyle(AppColors.neutral)
@@ -107,7 +107,7 @@ struct ToolsConfigView: View {
     @ViewBuilder
     private var mcpSection: some View {
         if !vm.mcpServers.isEmpty {
-            Section("MCP Servers") {
+            Section("MCP 服务器") {
                 ForEach(vm.mcpServers) { server in
                     NavigationLink {
                         McpServersView(vm: vm)
@@ -126,7 +126,7 @@ struct ToolsConfigView: View {
                             }
                             Spacer()
                             if let detail = vm.mcpDetails[server.id] {
-                                Text("\(detail.tools.count) tools")
+                                Text("\(detail.tools.count) 个工具")
                                     .font(AppTypography.micro)
                                     .foregroundStyle(detail.statusColor)
                             }

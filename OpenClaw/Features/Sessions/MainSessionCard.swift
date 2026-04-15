@@ -10,7 +10,7 @@ struct MainSessionCard: View {
         NavigationLink {
             SessionTraceView(
                 sessionKey: session.id,
-                title: "Main Session",
+                title: "主会话",
                 subtitle: session.startedAtFormatted,
                 newestFirst: true,
                 repository: repository,
@@ -21,13 +21,13 @@ struct MainSessionCard: View {
                 // Status + model
                 HStack {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Main Session")
+                        Text("主会话")
                             .font(AppTypography.heroNumber)
                         HStack(spacing: Spacing.xs) {
                             Circle()
                                 .fill(session.status == .running ? AppColors.success : AppColors.neutral)
                                 .frame(width: 8, height: 8)
-                            Text(session.status == .running ? "Running" : "Idle")
+                            Text(session.status == .running ? "运行中" : "空闲")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(session.status == .running ? AppColors.success : AppColors.neutral)
                         }
@@ -42,7 +42,7 @@ struct MainSessionCard: View {
                 HStack(spacing: Spacing.xl) {
                     RingGauge(
                         value: session.contextUsage,
-                        label: "Context",
+                        label: "上下文",
                         color: AppColors.gauge(
                             percent: session.contextUsage * 100,
                             warn: 60,
@@ -51,10 +51,10 @@ struct MainSessionCard: View {
                     )
 
                     VStack(alignment: .leading, spacing: Spacing.sm) {
-                        MetricRow(icon: "number.circle", label: "Tokens", value: Formatters.tokens(session.totalTokens), color: AppColors.metricPrimary)
-                        MetricRow(icon: "dollarsign.circle", label: "Cost", value: Formatters.cost(session.costUsd), color: AppColors.metricWarm)
-                        MetricRow(icon: "point.3.connected.trianglepath.dotted", label: "Subagents", value: "\(session.childSessionCount)", color: AppColors.neutral)
-                        MetricRow(icon: "clock", label: "Updated", value: session.updatedAtFormatted, color: AppColors.neutral)
+                        MetricRow(icon: "number.circle", label: "令牌", value: Formatters.tokens(session.totalTokens), color: AppColors.metricPrimary)
+                        MetricRow(icon: "dollarsign.circle", label: "成本", value: Formatters.cost(session.costUsd), color: AppColors.metricWarm)
+                        MetricRow(icon: "point.3.connected.trianglepath.dotted", label: "子代理", value: "\(session.childSessionCount)", color: AppColors.neutral)
+                        MetricRow(icon: "clock", label: "更新于", value: session.updatedAtFormatted, color: AppColors.neutral)
                     }
                 }
 
@@ -69,12 +69,12 @@ struct MainSessionCard: View {
                     Text(Formatters.tokens(session.contextTokens))
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
-                    Text("context window")
+                    Text("上下文窗口")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                     Spacer()
                     HStack(spacing: Spacing.xxs) {
-                        Text("View Trace")
+                        Text("查看轨迹")
                             .font(AppTypography.caption)
                         Image(systemName: "chevron.right")
                             .font(AppTypography.micro)
@@ -91,7 +91,7 @@ struct MainSessionCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityHint("Double tap to view execution trace")
+        .accessibilityHint("双击以查看执行轨迹")
     }
 }
 

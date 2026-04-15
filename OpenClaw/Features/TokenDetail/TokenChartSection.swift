@@ -17,7 +17,7 @@ struct TokenChartSection: View {
                 Spacer()
                 RingGauge(
                     value: usage.totals.cacheHitRate,
-                    label: "Cache Hit",
+                    label: "缓存命中",
                     color: AppColors.metricHighlight
                 )
             }
@@ -33,13 +33,13 @@ struct TokenChartSection: View {
 
     private var tokenDonut: some View {
         Chart {
-            SectorMark(angle: .value("Input", usage.totals.inputTokens))
+            SectorMark(angle: .value("输入", usage.totals.inputTokens))
                 .foregroundStyle(AppColors.metricPrimary)
-            SectorMark(angle: .value("Output", usage.totals.outputTokens))
+            SectorMark(angle: .value("输出", usage.totals.outputTokens))
                 .foregroundStyle(AppColors.metricPositive)
-            SectorMark(angle: .value("Cache Read", usage.totals.cacheReadTokens))
+            SectorMark(angle: .value("缓存读取", usage.totals.cacheReadTokens))
                 .foregroundStyle(AppColors.metricHighlight)
-            SectorMark(angle: .value("Cache Write", usage.totals.cacheWriteTokens))
+            SectorMark(angle: .value("缓存写入", usage.totals.cacheWriteTokens))
                 .foregroundStyle(AppColors.metricTertiary)
         }
         .chartLegend(.hidden)
@@ -47,21 +47,21 @@ struct TokenChartSection: View {
             VStack(spacing: 2) {
                 Text(Formatters.tokens(usage.totals.totalTokens))
                     .font(AppTypography.captionBold)
-                Text("tokens")
+                Text("令牌")
                     .font(AppTypography.nano)
                     .foregroundStyle(AppColors.neutral)
             }
         }
         .frame(width: 120, height: 120)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Token distribution: \(Formatters.tokens(usage.totals.inputTokens)) input, \(Formatters.tokens(usage.totals.outputTokens)) output, \(Formatters.tokens(usage.totals.cacheReadTokens)) cache read, \(Formatters.tokens(usage.totals.cacheWriteTokens)) cache write")
+        .accessibilityLabel("令牌分布：输入 \(Formatters.tokens(usage.totals.inputTokens))，输出 \(Formatters.tokens(usage.totals.outputTokens))，缓存读取 \(Formatters.tokens(usage.totals.cacheReadTokens))，缓存写入 \(Formatters.tokens(usage.totals.cacheWriteTokens))")
     }
 
     // MARK: - Cost Bar
 
     private var costByModelChart: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text("Cost by Model")
+            Text("按模型统计成本")
                 .font(AppTypography.caption)
                 .foregroundStyle(AppColors.neutral)
 
@@ -81,7 +81,7 @@ struct TokenChartSection: View {
             .chartXAxis(.hidden)
             .frame(height: CGFloat(paidModels.count) * 32 + Spacing.md)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Cost by model chart, \(paidModels.count) models")
+            .accessibilityLabel("按模型统计成本图表，共 \(paidModels.count) 个模型")
         }
     }
 }

@@ -17,7 +17,7 @@ struct CommandsDetailView: View {
     var body: some View {
         List {
             // All commands grid
-            Section("Commands") {
+            Section("命令") {
                 LazyVGrid(columns: columns, spacing: Spacing.xs) {
                     ForEach(QuickCommand.all) { cmd in
                         CommandButton(
@@ -33,10 +33,10 @@ struct CommandsDetailView: View {
 
             // Admin sections
             if adminVM.isLoading && adminVM.modelsConfig == nil {
-                Section("Models & Config") {
+                Section("模型与配置") {
                     CardLoadingView(minHeight: 60)
                 }
-                Section("Channels") {
+                Section("渠道") {
                     CardLoadingView(minHeight: 60)
                 }
             } else {
@@ -56,7 +56,7 @@ struct CommandsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Commands & Admin")
+        .navigationTitle("命令与管理")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -72,15 +72,15 @@ struct CommandsDetailView: View {
             Haptics.shared.refreshComplete()
         }
         .task { await adminVM.load() }
-        .alert("Run Command?", isPresented: Binding(
+        .alert("运行命令？", isPresented: Binding(
             get: { commandToConfirm != nil },
             set: { if !$0 { commandToConfirm = nil } }
         )) {
-            Button("Run", role: .destructive) {
+            Button("运行", role: .destructive) {
                 guard let cmd = commandToConfirm else { return }
                 Task { await commandsVM.execute(cmd) }
             }
-            Button("Cancel", role: .cancel) { commandToConfirm = nil }
+            Button("取消", role: .cancel) { commandToConfirm = nil }
         } message: {
             if let cmd = commandToConfirm {
                 Text(cmd.confirmMessage)

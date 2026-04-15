@@ -6,12 +6,12 @@ struct MoreTab: View {
     var body: some View {
         NavigationStack {
             ContentUnavailableView {
-                Label("More", systemImage: "ellipsis.circle")
+                Label("更多", systemImage: "ellipsis.circle")
             } description: {
-                Text("Additional features coming soon.")
+                Text("更多功能即将上线。")
                     .font(AppTypography.body)
             }
-            .navigationTitle("More")
+            .navigationTitle("更多")
             .navigationBarTitleDisplayMode(.large)
         }
     }

@@ -16,7 +16,7 @@ struct MemoryActionSheet: View {
         NavigationStack {
             List {
                 if result == nil && !isRunning {
-                    Section("Choose Action") {
+                    Section("选择操作") {
                         ForEach(actions) { action in
                             Button {
                                 selectedAction = action
@@ -50,7 +50,7 @@ struct MemoryActionSheet: View {
                             Spacer()
                             VStack(spacing: Spacing.xs) {
                                 ProgressView()
-                                Text(selectedAction?.loadingText ?? "Working\u{2026}")
+                                Text(selectedAction?.loadingText ?? "正在执行…")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.neutral)
                                 ElapsedTimer()
@@ -62,7 +62,7 @@ struct MemoryActionSheet: View {
                 }
 
                 if let response = result {
-                    Section("Agent Response") {
+                    Section("代理响应") {
                         Markdown(response)
                             .markdownTheme(.openClaw)
                             .textSelection(.enabled)
@@ -76,11 +76,11 @@ struct MemoryActionSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Actions")
+            .navigationTitle("操作")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(result != nil || error != nil ? "Done" : "Cancel") { dismiss() }
+                    Button(result != nil || error != nil ? "完成" : "取消") { dismiss() }
                 }
             }
         }
@@ -94,20 +94,20 @@ struct MemoryActionSheet: View {
             return [
                 MemoryAction(
                     id: "full-cleanup",
-                    name: "Full Cleanup",
-                    description: "Read docs, update today, then clean all memory files",
+                    name: "完整清理",
+                    description: "先读取文档，更新今日内容，再清理全部记忆文件",
                     icon: "sparkles",
                     color: AppColors.metricTertiary,
-                    loadingText: "Agent is reading docs and cleaning all memory\u{2026}",
+                    loadingText: "代理正在读取文档并清理全部记忆…",
                     prompt: PromptTemplates.memoryFullCleanup
                 ),
                 MemoryAction(
                     id: "today-cleanup",
-                    name: "Today Cleanup",
-                    description: "Read docs, update today's memory only",
+                    name: "今日清理",
+                    description: "先读取文档，仅更新今天的记忆",
                     icon: "calendar.badge.clock",
                     color: AppColors.primaryAction,
-                    loadingText: "Agent is updating today's memory\u{2026}",
+                    loadingText: "代理正在更新今天的记忆…",
                     prompt: PromptTemplates.memoryTodayCleanup
                 ),
             ]

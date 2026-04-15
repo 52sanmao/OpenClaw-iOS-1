@@ -41,12 +41,12 @@ struct TraceStep: Sendable, Identifiable {
 
     var title: String {
         switch kind {
-        case .systemPrompt:                "System Prompt"
-        case .userPrompt:                  "Input Prompt"
-        case .thinking:                    "Thinking"
-        case .text:                        "Response"
+        case .systemPrompt:                "系统提示"
+        case .userPrompt:                  "输入提示"
+        case .thinking:                    "思考"
+        case .text:                        "回复"
         case .toolCall(_, let name, _):    name
-        case .toolResult(_, let name, _, _): "\(name) result"
+        case .toolResult(_, let name, _, _): "\(name) 结果"
         }
     }
 
@@ -58,7 +58,7 @@ struct TraceStep: Sendable, Identifiable {
         case .toolCall(_, let name, let args):
             "\(name): \(String(args.prefix(150)))"
         case .toolResult(_, let name, let output, let isError):
-            "\(name) \(isError ? "error" : "result"): \(String(output.prefix(150)))"
+            "\(name) \(isError ? "错误" : "结果")：\(String(output.prefix(150)))"
         }
     }
 

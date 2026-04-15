@@ -14,12 +14,12 @@ struct SubmitEditsSheet: View {
             List {
                 // Comment queue — swipe to delete before submitting
                 if !hasResult {
-                    Section("Your Comments (\(vm.comments.count))") {
+                    Section("你的评论（\(vm.comments.count)）") {
                         ForEach(vm.comments) { comment in
                             VStack(alignment: .leading, spacing: Spacing.xs) {
                                 Text(comment.lineStart == comment.lineEnd
-                                     ? "Line \(comment.lineStart + 1)"
-                                     : "Lines \(comment.lineStart + 1)\u{2013}\(comment.lineEnd + 1)")
+                                     ? "第 \(comment.lineStart + 1) 行"
+                                     : "第 \(comment.lineStart + 1)–\(comment.lineEnd + 1) 行")
                                     .font(AppTypography.micro)
                                     .foregroundStyle(AppColors.neutral)
                                 Text(comment.paragraphPreview)
@@ -45,7 +45,7 @@ struct SubmitEditsSheet: View {
                             Spacer()
                             VStack(spacing: Spacing.xs) {
                                 ProgressView()
-                                Text("Agent is editing\u{2026}")
+                                Text("代理正在编辑…")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.neutral)
                                 ElapsedTimer()
@@ -57,7 +57,7 @@ struct SubmitEditsSheet: View {
                 }
 
                 if let response = vm.submitResult {
-                    Section("Agent Response") {
+                    Section("代理响应") {
                         Markdown(response)
                             .markdownTheme(.openClaw)
                             .textSelection(.enabled)
@@ -71,15 +71,15 @@ struct SubmitEditsSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Submit Edits")
+            .navigationTitle("提交修改")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if hasResult {
-                        Button("Done") {
+                        Button("完成") {
                             vm.clearComments()
                             dismiss()
                             Task { await reloadFile() }
@@ -91,7 +91,7 @@ struct SubmitEditsSheet: View {
                             if vm.isSubmitting {
                                 ProgressView().scaleEffect(0.8)
                             } else {
-                                Text("Submit")
+                                Text("提交")
                                     .fontWeight(.semibold)
                             }
                         }

@@ -22,10 +22,10 @@ struct CronStatusDot: View {
 
     private var label: String {
         switch status {
-        case .succeeded: "Succeeded"
-        case .failed:    "Failed"
-        case .unknown:   "Unknown"
-        case .never:     "Never run"
+        case .succeeded: "成功"
+        case .failed:    "失败"
+        case .unknown:   "未知"
+        case .never:     "从未运行"
         }
     }
 }
@@ -64,10 +64,10 @@ struct CronStatusBadge: View {
 
     private var label: String {
         switch status {
-        case .succeeded: style == .large ? "Last Run OK" : "OK"
-        case .failed:    style == .large ? "Last Run Failed" : "Failed"
-        case .unknown:   style == .large ? "Status Unknown" : "Unknown"
-        case .never:     "Never Run"
+        case .succeeded: style == .large ? "上次运行成功" : "成功"
+        case .failed:    style == .large ? "上次运行失败" : "失败"
+        case .unknown:   style == .large ? "状态未知" : "未知"
+        case .never:     "从未运行"
         }
     }
 

@@ -6,7 +6,7 @@ struct CopyButton: View {
     let label: String
     @State private var copied = false
 
-    init(_ text: String, label: String = "Copy") {
+    init(_ text: String, label: String = "复制") {
         self.text = text
         self.label = label
     }
@@ -15,7 +15,7 @@ struct CopyButton: View {
         Button { Formatters.copyToClipboard(text, copied: $copied) } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                Text(copied ? "Copied" : label)
+                Text(copied ? "已复制" : label)
             }
             .font(AppTypography.caption)
             .foregroundStyle(copied ? AppColors.success : AppColors.primaryAction)

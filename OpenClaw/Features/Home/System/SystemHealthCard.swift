@@ -5,7 +5,7 @@ struct SystemHealthCard: View {
 
     var body: some View {
         CardContainer(
-            title: "System Health",
+            title: "系统健康",
             systemImage: "desktopcomputer",
             isStale: vm.isStale,
             isLoading: vm.isLoading && vm.data == nil
@@ -29,7 +29,7 @@ struct SystemHealthCard: View {
 
                         RingGauge(
                             value: s.diskPercent / 100,
-                            label: "Disk",
+                            label: "磁盘",
                             color: AppColors.gauge(percent: s.diskPercent, warn: 80, critical: 90)
                         )
                         .frame(maxWidth: .infinity)
@@ -51,10 +51,10 @@ struct SystemHealthCard: View {
                                 .foregroundStyle(AppColors.primaryAction)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Refresh health")
+                        .accessibilityLabel("刷新健康状态")
 
                         HStack(spacing: Spacing.xxs) {
-                            Text("Load")
+                            Text("负载")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                             Text(String(format: "%.2f", s.loadAvg1M))

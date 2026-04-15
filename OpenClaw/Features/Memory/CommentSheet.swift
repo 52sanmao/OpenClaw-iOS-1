@@ -18,9 +18,9 @@ struct CommentSheet: View {
 
     private var title: String {
         switch mode {
-        case .paragraph: "Add Comment"
-        case .page: "Page Comment"
-        case .skill: "Skill Comment"
+        case .paragraph: "添加评论"
+        case .page: "页面评论"
+        case .skill: "技能评论"
         }
     }
 
@@ -113,7 +113,7 @@ struct CommentSheet: View {
                         Spacer()
                         VStack(spacing: Spacing.xs) {
                             ProgressView()
-                            Text("Agent is working\u{2026}")
+                            Text("代理正在处理中…")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.neutral)
                             ElapsedTimer()
@@ -125,7 +125,7 @@ struct CommentSheet: View {
             }
 
             if let response = vm.pageCommentResult {
-                Section("Agent Response") {
+                Section("代理响应") {
                     Markdown(response)
                         .markdownTheme(.openClaw)
                         .textSelection(.enabled)
@@ -145,9 +145,9 @@ struct CommentSheet: View {
 
     private var inputPlaceholder: String {
         switch mode {
-        case .paragraph: "What should change here\u{2026}"
-        case .page: "What should the agent do\u{2026}"
-        case .skill: "Instruct the agent about this skill\u{2026}"
+        case .paragraph: "这里需要修改什么…"
+        case .page: "希望代理执行什么操作…"
+        case .skill: "告诉代理如何处理这个技能…"
         }
     }
 
@@ -161,9 +161,9 @@ struct CommentSheet: View {
     private var dismissLabel: String {
         guard let vm = agentVM,
               vm.pageCommentResult != nil || vm.pageCommentError != nil else {
-            return "Cancel"
+            return "取消"
         }
-        return "Done"
+        return "完成"
     }
 
     private func handleSubmit(_ submitted: String) {

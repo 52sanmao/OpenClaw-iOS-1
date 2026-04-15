@@ -16,111 +16,111 @@ struct QuickCommand: Identifiable, Sendable {
         // Row 1 — visible by default
         QuickCommand(
             id: "restart-gateway",
-            name: "Restart",
+            name: "重启",
             icon: "arrow.clockwise.circle.fill",
             iconColor: AppColors.warning,
-            confirmMessage: "Restart the OpenClaw gateway? Active sessions will reconnect automatically.",
+            confirmMessage: "要重启 OpenClaw 网关吗？活动会话会自动重新连接。",
             toolName: "gateway",
             args: ["action": "restart"]
         ),
         QuickCommand(
             id: "doctor",
-            name: "Doctor",
+            name: "体检",
             icon: "stethoscope.circle.fill",
             iconColor: AppColors.metricPositive,
-            confirmMessage: "Run health checks on the gateway and all services?",
+            confirmMessage: "要对网关和所有服务执行健康检查吗？",
             toolName: "stats-exec",
             args: ["command": "doctor"]
         ),
         QuickCommand(
             id: "tail-logs",
-            name: "Tail Logs",
+            name: "日志尾部",
             icon: "doc.text.magnifyingglass",
             iconColor: AppColors.info,
-            confirmMessage: "Fetch the latest 50 gateway log lines?",
+            confirmMessage: "要获取最新 50 行网关日志吗？",
             toolName: "stats-exec",
             args: ["command": "logs"]
         ),
         // Row 2 — visible by default
         QuickCommand(
             id: "gateway-status",
-            name: "Status",
+            name: "状态",
             icon: "heart.circle.fill",
             iconColor: AppColors.success,
-            confirmMessage: "Check gateway and channel status?",
+            confirmMessage: "要检查网关和渠道状态吗？",
             toolName: "stats-exec",
             args: ["command": "status"]
         ),
         QuickCommand(
             id: "security-audit",
-            name: "Security",
+            name: "安全",
             icon: "lock.shield.fill",
             iconColor: AppColors.metricTertiary,
-            confirmMessage: "Run a full security audit on the gateway?",
+            confirmMessage: "要对网关执行完整安全审计吗？",
             toolName: "stats-exec",
             args: ["command": "security-audit"]
         ),
         QuickCommand(
             id: "backup",
-            name: "Backup",
+            name: "备份",
             icon: "externaldrive.fill.badge.checkmark",
             iconColor: AppColors.metricPrimary,
-            confirmMessage: "Create a full gateway backup? This may take a moment.",
+            confirmMessage: "要创建完整网关备份吗？这可能需要一点时间。",
             toolName: "stats-exec",
             args: ["command": "backup"]
         ),
         // Row 3+ — behind "View Details"
         QuickCommand(
             id: "pause-all-crons",
-            name: "Pause Crons",
+            name: "暂停定时任务",
             icon: "pause.circle.fill",
             iconColor: AppColors.danger,
-            confirmMessage: "Disable ALL cron jobs? No scheduled tasks will run until re-enabled.",
+            confirmMessage: "要禁用全部定时任务吗？在重新启用前，所有计划任务都不会运行。",
             toolName: "pause-all-crons",
             args: [:]
         ),
         QuickCommand(
             id: "channel-status",
-            name: "Channels",
+            name: "渠道",
             icon: "bubble.left.and.bubble.right.fill",
             iconColor: AppColors.metricHighlight,
-            confirmMessage: "Check status of all messaging channels?",
+            confirmMessage: "要检查所有消息渠道的状态吗？",
             toolName: "stats-exec",
             args: ["command": "channels-status"]
         ),
         QuickCommand(
             id: "memory-index",
-            name: "Reindex",
+            name: "重建索引",
             icon: "brain.fill",
             iconColor: AppColors.metricWarm,
-            confirmMessage: "Force reindex the semantic memory store?",
+            confirmMessage: "要强制重建语义记忆存储的索引吗？",
             toolName: "stats-exec",
             args: ["command": "memory-reindex"]
         ),
         QuickCommand(
             id: "session-cleanup",
-            name: "Cleanup",
+            name: "清理",
             icon: "trash.circle.fill",
             iconColor: AppColors.neutral,
-            confirmMessage: "Run session maintenance? Old sessions will be pruned.",
+            confirmMessage: "要执行会话维护吗？旧会话将被清理。",
             toolName: "stats-exec",
             args: ["command": "session-cleanup"]
         ),
         QuickCommand(
             id: "plugin-update",
-            name: "Update Plugins",
+            name: "更新插件",
             icon: "arrow.down.circle.fill",
             iconColor: AppColors.metricSecondary,
-            confirmMessage: "Update all installed plugins to latest versions?",
+            confirmMessage: "要将所有已安装插件更新到最新版本吗？",
             toolName: "stats-exec",
             args: ["command": "plugin-update"]
         ),
         QuickCommand(
             id: "config-validate",
-            name: "Validate",
+            name: "校验",
             icon: "checkmark.seal.fill",
             iconColor: AppColors.success,
-            confirmMessage: "Validate the gateway configuration file?",
+            confirmMessage: "要校验网关配置文件吗？",
             toolName: "stats-exec",
             args: ["command": "config-validate"]
         ),

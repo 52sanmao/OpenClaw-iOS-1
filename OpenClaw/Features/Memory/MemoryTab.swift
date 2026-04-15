@@ -6,14 +6,14 @@ struct MemoryTab: View {
     @State private var showActions = false
 
     enum WorkspaceTab: String, CaseIterable {
-        case memory = "Memory"
-        case skills = "Skills"
+        case memory = "记忆"
+        case skills = "技能"
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("View", selection: $selectedTab) {
+                Picker("视图", selection: $selectedTab) {
                     ForEach(WorkspaceTab.allCases, id: \.self) { tab in
                         Text(tab.rawValue).tag(tab)
                     }
@@ -32,7 +32,7 @@ struct MemoryTab: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    DetailTitleView(title: "Mem & Skills") {
+                    DetailTitleView(title: "记忆与技能") {
                         memSubtitle
                     }
                 }
@@ -60,7 +60,7 @@ struct MemoryTab: View {
     private var memoryList: some View {
         List {
             if !bootstrapFiles.isEmpty {
-                Section("Memory Files") {
+                Section("记忆文件") {
                     ForEach(bootstrapFiles) { file in
                         NavigationLink {
                             MemoryFileView(vm: vm, file: file)
@@ -72,7 +72,7 @@ struct MemoryTab: View {
             }
 
             if !dailyLogs.isEmpty {
-                Section("Daily Logs") {
+                Section("每日日志") {
                     ForEach(dailyLogs) { file in
                         NavigationLink {
                             MemoryFileView(vm: vm, file: file)
@@ -84,7 +84,7 @@ struct MemoryTab: View {
             }
 
             if !referenceFiles.isEmpty {
-                Section("Reference") {
+                Section("参考资料") {
                     ForEach(referenceFiles) { file in
                         NavigationLink {
                             MemoryFileView(vm: vm, file: file)
@@ -101,9 +101,9 @@ struct MemoryTab: View {
                 CardErrorView(error: err, minHeight: 60)
             } else if vm.files.isEmpty {
                 ContentUnavailableView(
-                    "No Files",
+                    "没有文件",
                     systemImage: "doc.text",
-                    description: Text("No workspace files found.")
+                    description: Text("未找到工作区文件。")
                 )
             }
         }

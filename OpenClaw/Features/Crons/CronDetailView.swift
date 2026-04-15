@@ -51,7 +51,7 @@ struct CronDetailView: View {
                             .font(AppTypography.body)
                     }
                 }
-                LabeledContent("Next Run") {
+                LabeledContent("下次运行") {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text(vm.job.nextRunFormatted)
                             .font(AppTypography.body)
@@ -63,7 +63,7 @@ struct CronDetailView: View {
                     }
                 }
                 if vm.job.consecutiveErrors > 0 {
-                    LabeledContent("Consecutive Errors") {
+                    LabeledContent("连续错误") {
                         Text("\(vm.job.consecutiveErrors)")
                             .foregroundStyle(AppColors.danger)
                             .fontWeight(.semibold)
@@ -73,7 +73,7 @@ struct CronDetailView: View {
 
             // MARK: - Error + Investigate
             if let error = vm.job.lastError {
-                Section("Error") {
+                Section("错误") {
                     Text(error)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.danger)
@@ -85,7 +85,7 @@ struct CronDetailView: View {
                         HStack(spacing: Spacing.xs) {
                             Image(systemName: "sparkle.magnifyingglass")
                                 .font(AppTypography.body)
-                            Text("Investigate with AI")
+                            Text("用 AI 排查")
                                 .fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity)
@@ -102,7 +102,7 @@ struct CronDetailView: View {
                             HStack(spacing: Spacing.xxs) {
                                 Image(systemName: "clock.arrow.circlepath")
                                     .font(AppTypography.micro)
-                                Text("Last investigated \(prev.investigatedAtFormatted)")
+                                Text("上次排查于 \(prev.investigatedAtFormatted)")
                                     .font(AppTypography.micro)
                                     .underline()
                             }
@@ -124,9 +124,9 @@ struct CronDetailView: View {
                     CardLoadingView(minHeight: 60)
                 } else if vm.runs.isEmpty && !vm.isLoading {
                     ContentUnavailableView(
-                        "No Runs Yet",
+                        "暂无运行记录",
                         systemImage: "clock",
-                        description: Text("This job hasn't recorded any runs.")
+                        description: Text("这个任务还没有产生任何运行记录。")
                     )
                     .frame(minHeight: 100)
                 } else {
@@ -155,7 +155,7 @@ struct CronDetailView: View {
                                 if vm.isLoadingMore {
                                     ProgressView().scaleEffect(0.8)
                                 } else {
-                                    Text("Load More")
+                                    Text("加载更多")
                                         .font(AppTypography.body)
                                         .foregroundStyle(AppColors.primaryAction)
                                 }
@@ -168,9 +168,9 @@ struct CronDetailView: View {
                 }
             } header: {
                 HStack {
-                    Text("Run History")
+                    Text("运行历史")
                     if let total = vm.totalRuns {
-                        Text("(\(total) total)")
+                        Text("(共 \(total) 条)")
                             .foregroundStyle(AppColors.neutral)
                     } else if !vm.runs.isEmpty {
                         Text("(\(vm.runs.count))")
@@ -222,30 +222,30 @@ struct CronDetailView: View {
                 }
             }
         }
-        .alert("Run Manually?", isPresented: $showRunConfirmation) {
-            Button("Run", role: .destructive) {
+        .alert("立即运行？", isPresented: $showRunConfirmation) {
+            Button("运行", role: .destructive) {
                 Task { await vm.triggerRun() }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
-            Text("This will trigger \"\(vm.job.name)\" immediately outside its normal schedule.")
+            Text("这会立刻触发“\(vm.job.name)”运行，不再等待原定计划时间。")
         }
         .alert(
-            vm.job.enabled ? "Disable Job?" : "Enable Job?",
+            vm.job.enabled ? "禁用任务？" : "启用任务？",
             isPresented: $showDisableConfirmation
         ) {
-            Button(vm.job.enabled ? "Disable" : "Enable", role: vm.job.enabled ? .destructive : nil) {
+            Button(vm.job.enabled ? "禁用" : "启用", role: vm.job.enabled ? .destructive : nil) {
                 let wasEnabled = vm.job.enabled
                 Task {
                     await vm.toggleEnabled()
                     if wasEnabled { dismiss() }
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button("取消", role: .cancel) {}
         } message: {
             Text(vm.job.enabled
-                 ? "This will stop \"\(vm.job.name)\" from running on its schedule until re-enabled."
-                 : "This will resume \"\(vm.job.name)\" on its normal schedule.")
+                 ? "禁用后，“\(vm.job.name)”将停止按计划自动运行，直到你重新启用它。"
+                 : "启用后，“\(vm.job.name)”会恢复按正常计划运行。")
         }
         .refreshable {
             await vm.loadRuns()

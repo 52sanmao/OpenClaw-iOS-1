@@ -18,7 +18,7 @@ struct SavedInvestigationSheet: View {
                             Text(investigation.jobName)
                                 .font(AppTypography.body)
                                 .fontWeight(.semibold)
-                            Text("Investigated \(investigation.investigatedAtFormatted)")
+                            Text("排查于 \(investigation.investigatedAtFormatted)")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                         }
@@ -44,18 +44,18 @@ struct SavedInvestigationSheet: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    CopyButton(investigation.resultText, label: "Copy Report")
+                    CopyButton(investigation.resultText, label: "复制报告")
                 }
                 .padding(Spacing.md)
             }
-            .navigationTitle("Previous Investigation")
+            .navigationTitle("上次排查")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     CopyToolbarButton(text: investigation.resultText)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("完成") { dismiss() }
                 }
             }
         }

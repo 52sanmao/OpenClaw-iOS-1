@@ -5,7 +5,7 @@ struct BlogPipelineCard: View {
 
     var body: some View {
         CardContainer(
-            title: "Blog Pipeline",
+            title: "博客流水线",
             systemImage: "doc.text.fill",
             isStale: vm.isStale,
             isLoading: vm.isLoading && vm.data == nil
@@ -17,14 +17,14 @@ struct BlogPipelineCard: View {
                         Text("\(s.published)")
                             .font(AppTypography.heroNumber)
                             .contentTransition(.numericText())
-                        Text("Published")
+                        Text("已发布")
                             .font(AppTypography.body)
                             .foregroundStyle(AppColors.neutral)
                             .padding(.bottom, Spacing.xs)
                         Spacer()
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(s.published) articles published")
+                    .accessibilityLabel("已发布 \(s.published) 篇文章")
 
                     // Active pipeline pills
                     if !s.activePipeline.isEmpty {
@@ -44,7 +44,7 @@ struct BlogPipelineCard: View {
                         Link(destination: url) {
                             HStack(alignment: .top, spacing: Spacing.xs) {
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text("LAST PUBLISHED")
+                                    Text("最近发布")
                                         .font(AppTypography.micro)
                                         .foregroundStyle(AppColors.neutral)
                                         .tracking(AppTypography.sectionLabelTracking)
@@ -61,7 +61,7 @@ struct BlogPipelineCard: View {
                                     .padding(.top, Spacing.sm + 2)
                             }
                         }
-                        .accessibilityLabel("Last published: \(title)")
+                        .accessibilityLabel("最近发布：\(title)")
                     }
                 }
             } else if vm.isLoading {

@@ -58,7 +58,7 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    DetailTitleView(title: accountStore.activeAccount?.name ?? "Home") {
+                    DetailTitleView(title: accountStore.activeAccount?.name ?? "首页") {
                         homeSubtitle
                     }
                 }
@@ -126,19 +126,19 @@ struct HomeView: View {
         let systemOk = systemVM.data != nil && systemVM.error == nil
 
         if failedCrons > 0 {
-            Text("\(failedCrons) cron failure\(failedCrons == 1 ? "" : "s")")
+            Text("\(failedCrons) 个定时任务失败")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.danger)
         } else if !systemOk && systemVM.error != nil {
-            Text("System unavailable")
+            Text("系统暂不可用")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.warning)
         } else if cronJobs.isEmpty {
-            Text("Loading\u{2026}")
+            Text("加载中…")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.neutral)
         } else {
-            Text("All systems OK")
+            Text("系统运行正常")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.success)
         }

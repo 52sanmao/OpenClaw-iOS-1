@@ -38,16 +38,16 @@ struct ToolsConfig: Sendable {
         mcpServerNames = dto.mcpServers ?? []
 
         let iconMap: [String: (name: String, icon: String)] = [
-            "runtime":    ("Runtime",    "terminal"),
-            "fs":         ("Files",      "doc.text"),
-            "web":        ("Web",        "globe"),
-            "ui":         ("UI",         "macwindow"),
-            "messaging":  ("Messaging",  "message"),
-            "automation": ("Automation", "clock.arrow.circlepath"),
-            "nodes":      ("Nodes",      "iphone.radiowaves.left.and.right"),
-            "media":      ("Media",      "photo"),
-            "sessions":   ("Sessions",   "person.2"),
-            "memory":     ("Memory",     "brain"),
+            "runtime":    ("运行时",    "terminal"),
+            "fs":         ("文件",      "doc.text"),
+            "web":        ("网络",      "globe"),
+            "ui":         ("界面",      "macwindow"),
+            "messaging":  ("消息",      "message"),
+            "automation": ("自动化",    "clock.arrow.circlepath"),
+            "nodes":      ("节点",      "iphone.radiowaves.left.and.right"),
+            "media":      ("媒体",      "photo"),
+            "sessions":   ("会话",      "person.2"),
+            "memory":     ("记忆",      "brain"),
         ]
 
         var grouped: [String: [NativeTool]] = [:]

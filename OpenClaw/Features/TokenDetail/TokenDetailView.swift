@@ -9,7 +9,7 @@ struct TokenDetailView: View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
                 // Period picker
-                Picker("Period", selection: $vm.selectedPeriod) {
+                Picker("周期", selection: $vm.selectedPeriod) {
                     ForEach(TokenPeriod.allCases) { period in
                         Text(period.label).tag(period)
                     }
@@ -24,24 +24,24 @@ struct TokenDetailView: View {
 
                 if let usage = vm.data {
                     // Section 1: Summary grid
-                    section("Overview") {
+                    section("概览") {
                         TokenSummaryGrid(totals: usage.totals)
                     }
 
                     // Section 2: Charts
-                    section("Charts") {
+                    section("图表") {
                         TokenChartSection(usage: usage)
                     }
 
                     // Section 3: By Model
                     if !usage.byModel.isEmpty {
-                        section("By Model (\(usage.byModel.count))") {
+                        section("按模型查看（\(usage.byModel.count)）") {
                             ModelDetailSection(models: usage.byModel)
                         }
                     }
 
                     // Section 4: By Pipeline
-                    section("By Pipeline") {
+                    section("按流水线查看") {
                         PipelineBreakdownSection(
                             breakdown: pipelineVM?.breakdown,
                             totalTokens: usage.totals.totalTokens,
@@ -58,7 +58,7 @@ struct TokenDetailView: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
         }
-        .navigationTitle("Token Usage")
+        .navigationTitle("令牌用量")
         .navigationBarTitleDisplayMode(.large)
         .refreshable {
             await vm.refresh()

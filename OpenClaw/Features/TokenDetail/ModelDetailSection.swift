@@ -21,7 +21,7 @@ private struct ModelDetailRow: View {
                 ModelPill(model: model.fullModel)
                 Spacer()
 
-                Text(model.costUsd > 0 ? Formatters.cost(model.costUsd) : "Included")
+                Text(model.costUsd > 0 ? Formatters.cost(model.costUsd) : "已包含")
                     .font(AppTypography.captionBold)
                     .foregroundStyle(model.costUsd > 0 ? AppColors.metricWarm : AppColors.neutral)
             }
@@ -32,7 +32,7 @@ private struct ModelDetailRow: View {
                     .font(AppTypography.metricValue)
                     .foregroundStyle(AppColors.metricPrimary)
 
-                Text("\(model.requestCount) req")
+                Text("\(model.requestCount) 次请求")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
 
@@ -45,17 +45,17 @@ private struct ModelDetailRow: View {
             // Stats row
             HStack(spacing: Spacing.sm) {
                 if model.thinkingRequests > 0 {
-                    Label("\(model.thinkingRequests) thinking", systemImage: "brain.head.profile")
+                    Label("\(model.thinkingRequests) 次思考", systemImage: "brain.head.profile")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.metricTertiary)
                 }
                 if model.toolRequests > 0 {
-                    Label("\(model.toolRequests) tools", systemImage: "terminal")
+                    Label("\(model.toolRequests) 次工具调用", systemImage: "terminal")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.metricWarm)
                 }
                 if model.cacheHitRate > 0 {
-                    Label(String(format: "%.0f%% cache", model.cacheHitRate * 100), systemImage: "bolt.fill")
+                    Label(String(format: "%.0f%% 缓存命中", model.cacheHitRate * 100), systemImage: "bolt.fill")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.metricHighlight)
                 }
@@ -88,10 +88,10 @@ private struct ModelTokenBar: View {
             .clipShape(Capsule())
 
             HStack(spacing: Spacing.sm) {
-                TokenLegendItem(color: AppColors.metricPrimary, label: "In", value: model.inputTokens)
-                TokenLegendItem(color: AppColors.metricPositive, label: "Out", value: model.outputTokens)
-                TokenLegendItem(color: AppColors.metricHighlight, label: "CR", value: model.cacheReadTokens)
-                TokenLegendItem(color: AppColors.metricTertiary, label: "CW", value: model.cacheWriteTokens)
+                TokenLegendItem(color: AppColors.metricPrimary, label: "输入", value: model.inputTokens)
+                TokenLegendItem(color: AppColors.metricPositive, label: "输出", value: model.outputTokens)
+                TokenLegendItem(color: AppColors.metricHighlight, label: "缓存读", value: model.cacheReadTokens)
+                TokenLegendItem(color: AppColors.metricTertiary, label: "缓存写", value: model.cacheWriteTokens)
                 Spacer()
             }
         }

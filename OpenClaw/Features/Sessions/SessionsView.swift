@@ -7,14 +7,14 @@ struct SessionsView: View {
     @State private var selectedTab: SessionTab = .chat
 
     enum SessionTab: String, CaseIterable {
-        case chat = "Chat History"
-        case subagents = "Subagents"
+        case chat = "聊天历史"
+        case subagents = "子代理"
     }
 
     var body: some View {
         NavigationStack {
         VStack(spacing: 0) {
-            Picker("Session type", selection: $selectedTab) {
+            Picker("会话类型", selection: $selectedTab) {
                 ForEach(SessionTab.allCases, id: \.self) { tab in
                     Text(tab.rawValue).tag(tab)
                 }
@@ -33,7 +33,7 @@ struct SessionsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                DetailTitleView(title: "Sessions") {
+                DetailTitleView(title: "会话") {
                     sessionSubtitle
                 }
             }
@@ -65,9 +65,9 @@ struct SessionsView: View {
                 .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView(
-                "No Session",
+                "暂无会话",
                 systemImage: "bubble.left.and.bubble.right",
-                description: Text("No active chat session found.")
+                description: Text("未找到活动中的聊天会话。")
             )
         }
     }
@@ -80,7 +80,7 @@ struct SessionsView: View {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if !vm.subagents.isEmpty {
             List {
-                Section("Subagent Sessions") {
+                Section("子代理会话") {
                     ForEach(vm.subagents) { session in
                         NavigationLink {
                             SessionTraceView(
@@ -106,9 +106,9 @@ struct SessionsView: View {
                 .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView(
-                "No Subagents",
+                "暂无子代理",
                 systemImage: "point.3.connected.trianglepath.dotted",
-                description: Text("No subagent sessions found.")
+                description: Text("未找到子代理会话。")
             )
         }
     }
@@ -117,7 +117,7 @@ struct SessionsView: View {
     private var sessionSubtitle: some View {
         if let main = vm.mainSession {
             HStack(spacing: Spacing.xs) {
-                Text(main.status == .running ? "Running" : "Idle")
+                Text(main.status == .running ? "运行中" : "空闲")
                     .font(AppTypography.micro)
                     .foregroundStyle(main.status == .running ? AppColors.success : AppColors.neutral)
                 Text("\u{00B7} \(Formatters.tokens(main.totalTokens))")
@@ -125,7 +125,7 @@ struct SessionsView: View {
                     .foregroundStyle(AppColors.neutral)
             }
         } else if vm.isLoading {
-            Text("Loading\u{2026}")
+            Text("加载中…")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.neutral)
         }

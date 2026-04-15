@@ -20,7 +20,7 @@ struct CommandResultSheet: View {
                             Text(result.command.name)
                                 .font(AppTypography.body)
                                 .fontWeight(.semibold)
-                            Text(result.isSuccess ? "Completed" : "Failed")
+                            Text(result.isSuccess ? "已完成" : "失败")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(result.isSuccess ? AppColors.success : AppColors.danger)
                         }
@@ -37,7 +37,7 @@ struct CommandResultSheet: View {
                         Button { Formatters.copyToClipboard(result.output, copied: $copied) } label: {
                             HStack(spacing: Spacing.xxs) {
                                 Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                                Text(copied ? "Copied" : "Copy")
+                                Text(copied ? "已复制" : "复制")
                             }
                             .font(AppTypography.caption)
                             .foregroundStyle(copied ? AppColors.success : AppColors.primaryAction)
@@ -59,7 +59,7 @@ struct CommandResultSheet: View {
                                 } else {
                                     Image(systemName: "sparkle.magnifyingglass")
                                 }
-                                Text("Investigate")
+                                Text("排查")
                             }
                             .font(AppTypography.caption)
                             .foregroundStyle(.white)
@@ -74,7 +74,7 @@ struct CommandResultSheet: View {
                     if vm.isInvestigating && vm.investigateResponse == nil {
                         VStack(spacing: Spacing.xs) {
                             ElapsedTimer()
-                            Text("Agent is analysing output\u{2026}")
+                            Text("代理正在分析输出…")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                         }
@@ -99,7 +99,7 @@ struct CommandResultSheet: View {
                         }
 
                         // AI report
-                        Markdown(response.text ?? "No response.")
+                        Markdown(response.text ?? "没有返回内容。")
                             .markdownTheme(.openClaw)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,14 +111,14 @@ struct CommandResultSheet: View {
                 }
                 .padding(Spacing.md)
             }
-            .navigationTitle("Result")
+            .navigationTitle("结果")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     CopyToolbarButton(text: result.output)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("完成") { dismiss() }
                 }
             }
         }

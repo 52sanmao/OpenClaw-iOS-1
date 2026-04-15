@@ -12,7 +12,7 @@ struct McpServersView: View {
                         Spacer()
                         VStack(spacing: Spacing.xs) {
                             ProgressView()
-                            Text("Querying MCP servers\u{2026}")
+                            Text("正在查询 MCP 服务器…")
                                 .font(AppTypography.caption)
                                 .foregroundStyle(AppColors.neutral)
                         }
@@ -27,7 +27,7 @@ struct McpServersView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("MCP Servers")
+        .navigationTitle("MCP 服务器")
         .navigationBarTitleDisplayMode(.inline)
         .task { await vm.loadMcpTools() }
     }
@@ -36,7 +36,7 @@ struct McpServersView: View {
     private func mcpServerSection(_ server: McpServer) -> some View {
         Section {
             // Runtime
-            LabeledContent("Runtime") {
+            LabeledContent("运行时") {
                 Text(server.runtime)
                     .font(AppTypography.captionMono)
                     .foregroundStyle(AppColors.neutral)
@@ -44,7 +44,7 @@ struct McpServersView: View {
 
             // Status
             if let detail = vm.mcpDetails[server.id] {
-                LabeledContent("Status") {
+                LabeledContent("状态") {
                     Text(detail.status)
                         .font(AppTypography.captionBold)
                         .foregroundStyle(detail.statusColor)
@@ -82,7 +82,7 @@ struct McpServersView: View {
             HStack {
                 Text(server.name)
                 if let detail = vm.mcpDetails[server.id], detail.isOk {
-                    Text("(\(detail.tools.count) tools)")
+                    Text("（\(detail.tools.count) 个工具）")
                         .foregroundStyle(AppColors.neutral)
                 }
             }

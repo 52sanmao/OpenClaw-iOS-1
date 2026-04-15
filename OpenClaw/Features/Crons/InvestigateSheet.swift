@@ -14,11 +14,11 @@ struct InvestigateSheet: View {
                 if vm.isInvestigating && response == nil {
                     VStack(spacing: Spacing.md) {
                         ProgressView()
-                        Text("Investigating\u{2026}")
+                        Text("正在排查…")
                             .font(AppTypography.body)
                             .foregroundStyle(AppColors.neutral)
                         ElapsedTimer()
-                        Text("The agent is checking logs, diagnosing, and fixing if needed.")
+                        Text("代理正在检查日志、诊断问题，并在需要时尝试修复。")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
                             .multilineTextAlignment(.center)
@@ -27,7 +27,7 @@ struct InvestigateSheet: View {
                     .padding(Spacing.xl)
                 } else if let error = vm.investigationError {
                     ContentUnavailableView(
-                        "Investigation Failed",
+                        "排查失败",
                         systemImage: "exclamationmark.triangle",
                         description: Text(error.localizedDescription)
                     )
@@ -43,7 +43,7 @@ struct InvestigateSheet: View {
                                     Text(vm.job.name)
                                         .font(AppTypography.body)
                                         .fontWeight(.semibold)
-                                    Text("Error Investigation")
+                                    Text("错误排查")
                                         .font(AppTypography.micro)
                                         .foregroundStyle(AppColors.neutral)
                                 }
@@ -80,13 +80,13 @@ struct InvestigateSheet: View {
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            CopyButton(result, label: "Copy Report")
+                            CopyButton(result, label: "复制报告")
                         }
                         .padding(Spacing.md)
                     }
                 }
             }
-            .navigationTitle("Investigation")
+            .navigationTitle("排查结果")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -95,7 +95,7 @@ struct InvestigateSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("完成") { dismiss() }
                 }
             }
         }

@@ -5,7 +5,7 @@ struct ChannelsSection: View {
 
     var body: some View {
         // Connected channels
-        Section("Channels") {
+        Section("渠道") {
             ForEach(status.channels) { channel in
                 HStack(spacing: Spacing.xs) {
                     Circle()
@@ -15,11 +15,11 @@ struct ChannelsSection: View {
                         .font(AppTypography.body)
                     Spacer()
                     if channel.isConnected {
-                        Text("\(channel.accountCount) account\(channel.accountCount == 1 ? "" : "s")")
+                        Text("\(channel.accountCount) 个账号")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
                     } else {
-                        Text("Disconnected")
+                        Text("未连接")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
                     }
@@ -30,7 +30,7 @@ struct ChannelsSection: View {
 
         // Provider usage
         if !status.providers.isEmpty {
-            Section("Provider Usage") {
+            Section("提供商用量") {
                 ForEach(status.providers) { provider in
                     VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack {

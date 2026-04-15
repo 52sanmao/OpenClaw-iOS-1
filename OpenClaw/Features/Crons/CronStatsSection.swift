@@ -5,30 +5,30 @@ struct CronStatsSection: View {
     let stats: CronDetailViewModel.RunStats
 
     var body: some View {
-        Section("Run Stats") {
-            LabeledContent("Avg Duration") {
+        Section("运行统计") {
+            LabeledContent("平均耗时") {
                 Text(stats.avgDurationFormatted)
                     .font(AppTypography.captionMono)
             }
 
-            LabeledContent("Avg Tokens") {
+            LabeledContent("平均令牌数") {
                 Text(Formatters.tokens(stats.avgTokens))
                     .font(AppTypography.captionMono)
                     .foregroundStyle(AppColors.metricPrimary)
             }
 
-            LabeledContent("Total Tokens") {
+            LabeledContent("总令牌数") {
                 Text(Formatters.tokens(stats.totalTokens))
                     .font(AppTypography.captionMono)
                     .foregroundStyle(AppColors.metricPrimary)
             }
 
-            LabeledContent("Success Rate") {
+            LabeledContent("成功率") {
                 HStack(spacing: Spacing.xs) {
                     Text(String(format: "%.0f%%", stats.successRate * 100))
                         .font(AppTypography.captionBold)
                         .foregroundStyle(rateColor)
-                    Text("(\(stats.runCount) runs)")
+                    Text("(\(stats.runCount) 次运行)")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                 }
@@ -45,7 +45,7 @@ struct CronStatsSection: View {
             }
             .frame(height: 6)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Success rate \(String(format: "%.0f", stats.successRate * 100)) percent")
+            .accessibilityLabel("成功率 \(String(format: "%.0f", stats.successRate * 100)) 百分比")
         }
     }
 

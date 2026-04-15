@@ -68,7 +68,7 @@ final class PipelineTokenViewModel {
             let mainTokens = max(totalTokens - pipelineTokenSum, 0)
             let mainSession = PipelineUsage(
                 id: "main-session",
-                name: "Main Session",
+                name: "主会话",
                 totalTokens: mainTokens,
                 runCount: 0
             )

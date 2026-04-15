@@ -6,7 +6,7 @@ struct TokenUsageCard: View {
 
     var body: some View {
         CardContainer(
-            title: "Token Usage",
+            title: "令牌用量",
             systemImage: "number.circle",
             isStale: vm.isStale,
             isLoading: vm.isLoading && vm.data == nil
@@ -14,7 +14,7 @@ struct TokenUsageCard: View {
             if let usage = vm.data {
                 VStack(spacing: Spacing.sm) {
                     // Period picker
-                    Picker("Period", selection: $vm.selectedPeriod) {
+                    Picker("周期", selection: $vm.selectedPeriod) {
                         ForEach(TokenPeriod.allCases) { period in
                             Text(period.label).tag(period)
                         }
@@ -30,7 +30,7 @@ struct TokenUsageCard: View {
                             Text(Formatters.tokens(usage.totals.totalTokens))
                                 .font(AppTypography.heroNumber)
                                 .contentTransition(.numericText())
-                            Text("total tokens")
+                            Text("总令牌数")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                         }
@@ -41,7 +41,7 @@ struct TokenUsageCard: View {
                                     .font(AppTypography.metricValue)
                                     .foregroundStyle(AppColors.metricWarm)
                                     .contentTransition(.numericText())
-                                Text("cost")
+                                Text("成本")
                                     .font(AppTypography.micro)
                                     .foregroundStyle(AppColors.neutral)
                             }
@@ -65,7 +65,7 @@ struct TokenUsageCard: View {
                             TokenDetailView(vm: vm, detailRepository: repo)
                         } label: {
                             HStack(spacing: Spacing.xxs) {
-                                Text("View Details")
+                                Text("查看详情")
                                     .font(AppTypography.caption)
                                 Image(systemName: "chevron.right")
                                     .font(AppTypography.micro)
@@ -106,10 +106,10 @@ private struct TokenUsageBar: View {
             .clipShape(Capsule())
 
             HStack(spacing: Spacing.sm) {
-                TokenLegendItem(color: AppColors.metricPrimary, label: "In", value: totals.inputTokens)
-                TokenLegendItem(color: AppColors.metricPositive, label: "Out", value: totals.outputTokens)
-                TokenLegendItem(color: AppColors.metricHighlight, label: "Cache Read", value: totals.cacheReadTokens)
-                TokenLegendItem(color: AppColors.metricTertiary, label: "Cache Write", value: totals.cacheWriteTokens)
+                TokenLegendItem(color: AppColors.metricPrimary, label: "输入", value: totals.inputTokens)
+                TokenLegendItem(color: AppColors.metricPositive, label: "输出", value: totals.outputTokens)
+                TokenLegendItem(color: AppColors.metricHighlight, label: "缓存读取", value: totals.cacheReadTokens)
+                TokenLegendItem(color: AppColors.metricTertiary, label: "缓存写入", value: totals.cacheWriteTokens)
                 Spacer()
             }
         }
@@ -128,9 +128,9 @@ private struct TokenStatsGrid: View {
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            StatPill(icon: "arrow.up.arrow.down", label: "Requests", value: "\(totals.requestCount)")
-            StatPill(icon: "brain.head.profile", label: "Thinking", value: "\(totals.thinkingRequests)")
-            StatPill(icon: "terminal", label: "Tool Use", value: "\(totals.toolRequests)")
+            StatPill(icon: "arrow.up.arrow.down", label: "请求", value: "\(totals.requestCount)")
+            StatPill(icon: "brain.head.profile", label: "思考", value: "\(totals.thinkingRequests)")
+            StatPill(icon: "terminal", label: "工具调用", value: "\(totals.toolRequests)")
             Spacer()
         }
     }
@@ -170,7 +170,7 @@ private struct ModelBreakdownSection: View {
                 }
             } label: {
                 HStack {
-                    Text("By Model (\(models.count))")
+                    Text("按模型查看（\(models.count)）")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.primaryAction)
                     Spacer()

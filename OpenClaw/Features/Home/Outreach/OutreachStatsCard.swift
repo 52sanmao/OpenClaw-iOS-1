@@ -5,7 +5,7 @@ struct OutreachStatsCard: View {
 
     var body: some View {
         CardContainer(
-            title: "Outreach",
+            title: "外联",
             systemImage: "chart.bar.fill",
             isStale: vm.isStale,
             isLoading: vm.isLoading && vm.data == nil
@@ -13,18 +13,18 @@ struct OutreachStatsCard: View {
             if let s = vm.data {
                 Grid(horizontalSpacing: Spacing.xs + 2, verticalSpacing: Spacing.xs + 2) {
                     GridRow {
-                        StatCell(label: "Total",    value: s.totalLeads, color: AppColors.metricPrimary)
-                        StatCell(label: "Emailed",  value: s.emailSent,  color: AppColors.metricSecondary)
+                        StatCell(label: "总数",    value: s.totalLeads, color: AppColors.metricPrimary)
+                        StatCell(label: "已发邮件",  value: s.emailSent,  color: AppColors.metricSecondary)
                         StatCell(label: "WhatsApp", value: s.waSent,     color: AppColors.metricPositive)
                     }
                     GridRow {
-                        StatCell(label: "Replied",   value: s.replied,   color: AppColors.metricWarm)
-                        StatCell(label: "Converted", value: s.converted, color: AppColors.metricTertiary)
+                        StatCell(label: "已回复",   value: s.replied,   color: AppColors.metricWarm)
+                        StatCell(label: "已转化", value: s.converted, color: AppColors.metricTertiary)
                         VStack(spacing: 2) {
                             Text(String(format: "%.1f%%", s.replyRatePct))
                                 .font(AppTypography.metricValue)
                                 .foregroundStyle(AppColors.metricHighlight)
-                            Text("Reply Rate")
+                            Text("回复率")
                                 .font(AppTypography.metricLabel)
                                 .foregroundStyle(AppColors.neutral)
                         }

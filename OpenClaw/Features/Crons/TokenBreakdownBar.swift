@@ -24,13 +24,13 @@ struct TokenBreakdownBar: View {
             .frame(height: 6)
             .clipShape(Capsule())
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Tokens: \(Formatters.tokens(input)) in, \(Formatters.tokens(output)) out")
+            .accessibilityLabel("令牌：输入 \(Formatters.tokens(input))，输出 \(Formatters.tokens(output))")
 
             HStack(spacing: Spacing.sm) {
-                TokenLegendItem(color: AppColors.metricPrimary, label: "In", value: input)
-                TokenLegendItem(color: AppColors.metricPositive, label: "Out", value: output)
+                TokenLegendItem(color: AppColors.metricPrimary, label: "输入", value: input)
+                TokenLegendItem(color: AppColors.metricPositive, label: "输出", value: output)
                 if hasReasoning {
-                    TokenLegendItem(color: AppColors.metricTertiary, label: "Other", value: reasoning)
+                    TokenLegendItem(color: AppColors.metricTertiary, label: "其他", value: reasoning)
                 }
                 Spacer()
             }

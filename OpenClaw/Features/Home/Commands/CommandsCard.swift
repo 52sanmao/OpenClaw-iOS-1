@@ -9,7 +9,7 @@ struct CommandsCard: View {
 
     var body: some View {
         CardContainer(
-            title: "Commands",
+            title: "命令",
             systemImage: "terminal.fill",
             isStale: false,
             isLoading: false
@@ -32,7 +32,7 @@ struct CommandsCard: View {
                         CommandsDetailView(commandsVM: vm, client: client)
                     } label: {
                         HStack(spacing: Spacing.xxs) {
-                            Text("View Details")
+                            Text("查看详情")
                                 .font(AppTypography.caption)
                             Image(systemName: "chevron.right")
                                 .font(AppTypography.micro)
@@ -44,15 +44,15 @@ struct CommandsCard: View {
                 }
             }
         }
-        .alert("Run Command?", isPresented: Binding(
+        .alert("运行命令？", isPresented: Binding(
             get: { commandToConfirm != nil },
             set: { if !$0 { commandToConfirm = nil } }
         )) {
-            Button("Run", role: .destructive) {
+            Button("运行", role: .destructive) {
                 guard let cmd = commandToConfirm else { return }
                 Task { await vm.execute(cmd) }
             }
-            Button("Cancel", role: .cancel) { commandToConfirm = nil }
+            Button("取消", role: .cancel) { commandToConfirm = nil }
         } message: {
             if let cmd = commandToConfirm {
                 Text(cmd.confirmMessage)

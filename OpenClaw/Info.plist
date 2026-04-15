@@ -6,5 +6,10 @@
 	<array/>
 	<key>CFBundleDisplayName</key>
 	<string>开爪</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

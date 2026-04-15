@@ -28,7 +28,7 @@ struct CardErrorView: View {
 
     var body: some View {
         ContentUnavailableView(
-            "Unavailable",
+            "暂不可用",
             systemImage: "wifi.exclamationmark",
             description: Text(error.localizedDescription)
         )

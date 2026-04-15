@@ -127,7 +127,7 @@ struct ParagraphRow: View {
                                 .foregroundStyle(AppColors.neutral)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Remove comment")
+                        .accessibilityLabel("移除评论")
                     }
                     .padding(Spacing.xs)
                     .background(AppColors.tintedBackground(AppColors.metricWarm, opacity: 0.08), in: RoundedRectangle(cornerRadius: AppRadius.sm))
@@ -136,7 +136,7 @@ struct ParagraphRow: View {
                 Button(action: onAddComment) {
                     HStack(spacing: Spacing.xxs) {
                         Image(systemName: "plus.bubble")
-                        Text(hasComments ? "Add Another" : "Add Comment")
+                        Text(hasComments ? "再加一条" : "添加评论")
                     }
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.primaryAction)

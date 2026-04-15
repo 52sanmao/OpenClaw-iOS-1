@@ -8,14 +8,14 @@ struct TokenSummaryGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: Spacing.sm) {
-            MetricCell(label: "Total Tokens", value: Formatters.tokens(totals.totalTokens), color: AppColors.metricPrimary)
-            MetricCell(label: "Cost", value: Formatters.cost(totals.costUsd), color: AppColors.metricWarm)
-            MetricCell(label: "Input", value: Formatters.tokens(totals.inputTokens), color: AppColors.metricPrimary)
-            MetricCell(label: "Output", value: Formatters.tokens(totals.outputTokens), color: AppColors.metricPositive)
-            MetricCell(label: "Cache Read", value: Formatters.tokens(totals.cacheReadTokens), color: AppColors.metricHighlight)
-            MetricCell(label: "Cache Write", value: Formatters.tokens(totals.cacheWriteTokens), color: AppColors.metricTertiary)
-            MetricCell(label: "Requests", value: "\(totals.requestCount)", color: AppColors.neutral)
-            MetricCell(label: "Tool Use", value: "\(totals.toolRequests)", color: AppColors.metricWarm)
+            MetricCell(label: "总令牌数", value: Formatters.tokens(totals.totalTokens), color: AppColors.metricPrimary)
+            MetricCell(label: "成本", value: Formatters.cost(totals.costUsd), color: AppColors.metricWarm)
+            MetricCell(label: "输入", value: Formatters.tokens(totals.inputTokens), color: AppColors.metricPrimary)
+            MetricCell(label: "输出", value: Formatters.tokens(totals.outputTokens), color: AppColors.metricPositive)
+            MetricCell(label: "缓存读取", value: Formatters.tokens(totals.cacheReadTokens), color: AppColors.metricHighlight)
+            MetricCell(label: "缓存写入", value: Formatters.tokens(totals.cacheWriteTokens), color: AppColors.metricTertiary)
+            MetricCell(label: "请求", value: "\(totals.requestCount)", color: AppColors.neutral)
+            MetricCell(label: "工具调用", value: "\(totals.toolRequests)", color: AppColors.metricWarm)
         }
     }
 }

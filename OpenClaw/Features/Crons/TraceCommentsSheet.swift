@@ -17,7 +17,7 @@ struct TraceCommentsSheet: View {
         NavigationStack {
             List {
                 if result == nil {
-                    Section("Your Comments (\(comments.count))") {
+                    Section("你的评论（\(comments.count)）") {
                         ForEach(comments) { comment in
                             VStack(alignment: .leading, spacing: Spacing.xs) {
                                 HStack {
@@ -53,7 +53,7 @@ struct TraceCommentsSheet: View {
                             Spacer()
                             VStack(spacing: Spacing.xs) {
                                 ProgressView()
-                                Text("Agent is investigating\u{2026}")
+                                Text("代理正在排查…")
                                     .font(AppTypography.caption)
                                     .foregroundStyle(AppColors.neutral)
                                 ElapsedTimer()
@@ -65,7 +65,7 @@ struct TraceCommentsSheet: View {
                 }
 
                 if let response = result {
-                    Section("Agent Response") {
+                    Section("代理响应") {
                         Markdown(response)
                             .markdownTheme(.openClaw)
                             .textSelection(.enabled)
@@ -79,17 +79,17 @@ struct TraceCommentsSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Trace Comments")
+            .navigationTitle("轨迹评论")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if result != nil {
-                        Button("Done") {
+                        Button("完成") {
                             comments.removeAll()
                             dismiss()
                         }
                     } else {
-                        Button("Cancel") { dismiss() }
+                        Button("取消") { dismiss() }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -100,7 +100,7 @@ struct TraceCommentsSheet: View {
                             if isSubmitting {
                                 ProgressView().scaleEffect(0.8)
                             } else {
-                                Text("Submit")
+                                Text("提交")
                                     .fontWeight(.semibold)
                             }
                         }

@@ -72,7 +72,7 @@ struct TraceStepRow: View {
                                         .foregroundStyle(AppColors.neutral)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("Remove comment")
+                                .accessibilityLabel("移除评论")
                             }
                         }
                         .padding(Spacing.xs)
@@ -83,7 +83,7 @@ struct TraceStepRow: View {
                         Button(action: onComment) {
                             HStack(spacing: Spacing.xxs) {
                                 Image(systemName: "plus.bubble")
-                                Text(comments.isEmpty ? "Add Comment" : "Add Another")
+                                Text(comments.isEmpty ? "添加评论" : "再加一条")
                             }
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.primaryAction)

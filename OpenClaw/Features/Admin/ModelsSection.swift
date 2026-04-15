@@ -6,27 +6,27 @@ struct ModelsSection: View {
     @State private var showAliases = false
 
     var body: some View {
-        Section("Models & Config") {
+        Section("模型与配置") {
             // Default model
-            ModelRow(label: "Default", model: config.defaultModel)
+            ModelRow(label: "默认", model: config.defaultModel)
 
             // Fallbacks
             if !config.fallbacks.isEmpty {
                 ForEach(config.fallbacks, id: \.self) { fb in
-                    ModelRow(label: "Fallback", model: fb)
+                    ModelRow(label: "回退", model: fb)
                 }
             }
 
             // Image model
             if let imageModel = config.imageModel {
-                ModelRow(label: "Image", model: imageModel)
+                ModelRow(label: "图像", model: imageModel)
             } else {
                 HStack {
-                    Text("Image")
+                    Text("图像")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.neutral)
                     Spacer()
-                    Text("None")
+                    Text("无")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.neutral)
                 }
@@ -40,7 +40,7 @@ struct ModelsSection: View {
                         .font(AppTypography.body)
                         .fontWeight(.medium)
                     if agent.isDefault {
-                        Text("Default")
+                        Text("默认")
                             .font(AppTypography.nano)
                             .padding(.horizontal, Spacing.xxs)
                             .padding(.vertical, 2)
@@ -62,7 +62,7 @@ struct ModelsSection: View {
                     }
                 } label: {
                     HStack {
-                        Text("Aliases (\(config.aliases.count))")
+                        Text("别名（\(config.aliases.count)）")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.primaryAction)
                         Spacer()
