@@ -113,6 +113,19 @@ struct CronDetailView: View {
                 }
             }
 
+            // MARK: - Operation Errors
+            if let runtimeError = vm.error {
+                Section("操作错误") {
+                    Text(runtimeError.localizedDescription)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.danger)
+
+                    Text("如果这里报错，而聊天页仍可使用，通常表示是 routines 接口本身失败，而不是整个 App 不可用。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+            }
+
             // MARK: - Run Stats
             if let stats = vm.stats {
                 CronStatsSection(stats: stats)

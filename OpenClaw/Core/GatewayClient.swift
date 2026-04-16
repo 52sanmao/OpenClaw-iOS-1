@@ -20,6 +20,12 @@ protocol GatewayClientProtocol: Sendable {
     func triggerRoutine(jobId: String, mode: String) async throws
     func setRoutineEnabled(jobId: String, enabled: Bool) async throws
     func validateConnection() async throws
+    func validateGatewayConnection(testMessage: String) async throws -> GatewayValidationResult
+}
+
+struct GatewayValidationResult: Sendable {
+    let summary: String
+    let details: [String]
 }
 
 private struct MappedThreadCompletion {
@@ -82,6 +88,37 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
             stream: request.stream
         )
         return mapped.response
+    }
+
+    func validateGatewayConnection(testMessage: String = "ping") async throws -> GatewayValidationResult {
+        try await validateConnection()
+
+        var details: [String] = ["模型接口 /v1/models 可达"]
+        let thread = try await createChatThread()
+        let threadId = thread.id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !threadId.isEmpty else {
+            throw GatewayError.invalidResponse
+        }
+        details.append("线程创建成功: \(threadId)")
+
+        let baselineHistory = try await loadChatHistory(threadId: threadId)
+        details.append("历史读取成功，当前共有 \(baselineHistory.turns.count) 条 turn")
+
+        _ = try await sendThreadMessage(threadId: threadId, content: testMessage)
+        details.append("消息发送成功: /api/chat/send")
+
+        let poll = try await waitForThreadTurn(
+            threadId: threadId,
+            afterTurnCount: baselineHistory.turns.count,
+            timeout: 20
+        )
+        let reply = (poll.latestTurn.response ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        details.append(reply.isEmpty ? "历史轮询成功，但最新回复为空" : "历史轮询成功，已收到回复")
+
+        return GatewayValidationResult(
+            summary: "聊天主链路可用：已完成模型探活、线程创建、发送消息与历史轮询。",
+            details: details
+        )
     }
 
     // MARK: - Thread-based chat

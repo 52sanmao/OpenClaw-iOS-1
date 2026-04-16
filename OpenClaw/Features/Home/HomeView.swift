@@ -45,12 +45,17 @@ struct HomeView: View {
 
                     if systemVM.data == nil && tokenUsageVM.data == nil {
                         ContentUnavailableView(
-                            "当前部署以聊天能力为主",
-                            systemImage: "server.rack",
-                            description: Text("该 IronClaw 服务器已提供聊天、线程历史、模型发现与网关状态，但未启用 /stats/* 与 /tools/invoke 扩展接口。")
+                            "聊天与定时任务仍可用",
+                            systemImage: "message.badge",
+                            description: Text("当前首页缺少的是 /stats/* 或 /tools/invoke 扩展数据，不是聊天主链路故障。你仍然可以继续使用聊天、线程历史和定时任务。")
                         )
                         .padding(.top, Spacing.sm)
                     }
+
+                    Text("首页卡片为空通常表示扩展统计接口未启用；这不会阻止 IronClaw 的聊天、线程历史或定时任务主路径。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)

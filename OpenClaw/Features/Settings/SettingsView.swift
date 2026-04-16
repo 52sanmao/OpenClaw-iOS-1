@@ -8,6 +8,8 @@ struct SettingsView: View {
     @State private var isTesting = false
     @State private var testResult: TestResult?
     @State private var accountToDelete: GatewayAccount?
+    @State private var connectionDetails: [String] = []
+    @State private var showConnectionDetails = false
 
     var body: some View {
         List {
@@ -96,8 +98,27 @@ struct SettingsView: View {
                         .foregroundStyle(result.isSuccess ? AppColors.success : AppColors.danger)
                         .textSelection(.enabled)
                 }
+
+                if !connectionDetails.isEmpty {
+                    Button(showConnectionDetails ? "隐藏诊断详情" : "查看诊断详情") {
+                        showConnectionDetails.toggle()
+                    }
+
+                    if showConnectionDetails {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            ForEach(Array(connectionDetails.enumerated()), id: \.offset) { _, detail in
+                                Text("• \(detail)")
+                                    .font(AppTypography.captionMono)
+                                    .foregroundStyle(AppColors.neutral)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                }
             } header: {
                 Text("诊断")
+            } footer: {
+                Text("连接测试会依次检查 /v1/models、/api/chat/thread/new、/api/chat/send 与 /api/chat/history。成功代表聊天主链路可用；即使某些扩展页面缺少接口，聊天与定时任务仍可继续使用。")
             }
 
             Section("关于") {
@@ -131,14 +152,17 @@ struct SettingsView: View {
     private func runConnectionTest() {
         isTesting = true
         testResult = nil
+        connectionDetails = []
+        showConnectionDetails = false
         guard let client else { return }
         Task {
             do {
-                try await client.validateConnection()
+                let result = try await client.validateGatewayConnection(testMessage: "Hello from OpenClaw settings")
                 testResult = TestResult(
                     isSuccess: true,
-                    message: "正常 — 已成功连接 IronClaw /v1/models"
+                    message: result.summary
                 )
+                connectionDetails = result.details
                 Haptics.shared.success()
             } catch {
                 testResult = TestResult(isSuccess: false, message: error.localizedDescription)
