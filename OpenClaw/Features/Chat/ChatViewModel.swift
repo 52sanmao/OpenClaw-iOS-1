@@ -68,7 +68,12 @@ final class ChatViewModel {
                     messages[idx].content = poll.latestTurn.response ?? ""
                     messages[idx].isStreaming = false
                 }
-                messages = mapTurns(poll.history.turns)
+                messages = mergeHistory(
+                    poll.history.turns,
+                    pendingUserText: text,
+                    pendingUserTimestamp: userMessage.timestamp,
+                    assistantFallback: poll.latestTurn.response
+                )
                 Haptics.shared.success()
             } catch is CancellationError {
                 if let idx = messages.firstIndex(where: { $0.id == assistantId }) {
@@ -133,5 +138,38 @@ final class ChatViewModel {
             }
         }
         return mapped
+    }
+
+    private func mergeHistory(
+        _ turns: [ChatThreadTurn],
+        pendingUserText: String,
+        pendingUserTimestamp: Date,
+        assistantFallback: String?
+    ) -> [ChatMessage] {
+        var merged = mapTurns(turns)
+        let normalizedPendingUser = normalizeMessageText(pendingUserText)
+        let historyContainsUser = merged.contains {
+            $0.role == .user && normalizeMessageText($0.content) == normalizedPendingUser
+        }
+
+        if !historyContainsUser {
+            merged.append(ChatMessage(role: .user, content: pendingUserText, timestamp: pendingUserTimestamp))
+        }
+
+        let normalizedAssistantFallback = normalizeMessageText(assistantFallback ?? "")
+        if !normalizedAssistantFallback.isEmpty {
+            let historyContainsAssistant = merged.contains {
+                $0.role == .assistant && normalizeMessageText($0.content) == normalizedAssistantFallback
+            }
+            if !historyContainsAssistant {
+                merged.append(ChatMessage(role: .assistant, content: assistantFallback ?? "", timestamp: Date()))
+            }
+        }
+
+        return merged.sorted { $0.timestamp < $1.timestamp }
+    }
+
+    private func normalizeMessageText(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

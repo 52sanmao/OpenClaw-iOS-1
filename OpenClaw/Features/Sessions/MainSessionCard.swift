@@ -9,7 +9,7 @@ struct MainSessionCard: View {
     var body: some View {
         NavigationLink {
             SessionTraceView(
-                sessionKey: session.id,
+                sessionKey: session.traceLookupKey,
                 title: "主会话",
                 subtitle: session.startedAtFormatted,
                 newestFirst: true,

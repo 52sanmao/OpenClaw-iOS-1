@@ -12,6 +12,7 @@ struct SessionEntry: Sendable, Identifiable {
     let contextTokens: Int
     let costUsd: Double
     let childSessionCount: Int
+    let traceLookupKey: String
 
     /// How full the context window is (0.0–1.0).
     var contextUsage: Double {
@@ -50,7 +51,8 @@ struct SessionEntry: Sendable, Identifiable {
         totalTokens: Int,
         contextTokens: Int,
         costUsd: Double,
-        childSessionCount: Int
+        childSessionCount: Int,
+        traceLookupKey: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -63,6 +65,7 @@ struct SessionEntry: Sendable, Identifiable {
         self.contextTokens = contextTokens
         self.costUsd = costUsd
         self.childSessionCount = childSessionCount
+        self.traceLookupKey = traceLookupKey ?? id
     }
 
     @MainActor init(dto: SessionListDTO) {
@@ -75,6 +78,7 @@ struct SessionEntry: Sendable, Identifiable {
         childSessionCount = dto.childSessions?.count ?? 0
         updatedAt = dto.updatedAt.map { Date(timeIntervalSince1970: Double($0) / 1000) }
         startedAt = dto.startedAt.map { Date(timeIntervalSince1970: Double($0) / 1000) }
+        traceLookupKey = dto.sessionId ?? dto.key
 
         switch dto.status {
         case "running": status = .running

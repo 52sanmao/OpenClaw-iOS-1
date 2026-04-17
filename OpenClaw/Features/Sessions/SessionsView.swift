@@ -92,7 +92,7 @@ struct SessionsView: View {
                     ForEach(vm.subagents) { session in
                         NavigationLink {
                             SessionTraceView(
-                                sessionKey: session.id,
+                                sessionKey: session.traceLookupKey,
                                 title: session.displayName,
                                 subtitle: session.updatedAtFormatted,
                                 repository: repository,
