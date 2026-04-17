@@ -45,7 +45,7 @@ final class AdminViewModel {
             if let data = response.stdout?.data(using: .utf8) {
                 let dto = try JSONDecoder().decode(ModelsStatusDTO.self, from: data)
                 modelsConfig = ModelsConfig(dto: dto)
-                AppLogStore.shared.append("AdminViewModel: 模型配置加载成功 aliases=\(dto.aliases.count)")
+                AppLogStore.shared.append("AdminViewModel: 模型配置加载成功 aliases=\(dto.aliases?.count ?? 0)")
             }
         } catch {
             AppLogStore.shared.append("AdminViewModel: 模型配置加载失败 error=\(error.localizedDescription)")
