@@ -45,7 +45,12 @@ final class MemoryViewModel {
             AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新完成 count=\(files.count)")
         } catch {
             fileError = error
-            AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新失败 error=\(error.localizedDescription)")
+            if let gatewayError = error as? GatewayError,
+               case .httpError(404, _) = gatewayError {
+                AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新失败 error=当前部署未启用 stats/exec；记忆/技能页不可用，但聊天主链路可能仍正常")
+            } else {
+                AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新失败 error=\(error.localizedDescription)")
+            }
         }
         isLoadingFiles = false
     }
@@ -61,7 +66,12 @@ final class MemoryViewModel {
             AppLogStore.shared.append("MemoryViewModel: 技能列表刷新完成 count=\(skills.count)")
         } catch {
             skillError = error
-            AppLogStore.shared.append("MemoryViewModel: 技能列表刷新失败 error=\(error.localizedDescription)")
+            if let gatewayError = error as? GatewayError,
+               case .httpError(404, _) = gatewayError {
+                AppLogStore.shared.append("MemoryViewModel: 技能列表刷新失败 error=当前部署未启用 stats/exec；记忆/技能页不可用，但聊天主链路可能仍正常")
+            } else {
+                AppLogStore.shared.append("MemoryViewModel: 技能列表刷新失败 error=\(error.localizedDescription)")
+            }
         }
         isLoadingSkills = false
     }

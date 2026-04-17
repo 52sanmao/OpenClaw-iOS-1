@@ -151,6 +151,13 @@ struct ChatThreadHistoryResponse: Decodable, Sendable {
         case turns
         case hasMore = "has_more"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        threadId = try container.decodeIfPresent(String.self, forKey: .threadId) ?? ""
+        turns = try container.decodeIfPresent([ChatThreadTurn].self, forKey: .turns) ?? []
+        hasMore = try container.decodeIfPresent(Bool.self, forKey: .hasMore) ?? false
+    }
 }
 
 struct ChatThreadTurn: Decodable, Sendable {
@@ -169,9 +176,19 @@ struct ChatThreadTurn: Decodable, Sendable {
         case completedAt = "completed_at"
     }
 
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        turnNumber = try container.decodeIfPresent(Int.self, forKey: .turnNumber)
+        userInput = try container.decodeIfPresent(String.self, forKey: .userInput) ?? ""
+        response = try container.decodeIfPresent(String.self, forKey: .response)
+        state = try container.decodeIfPresent(String.self, forKey: .state) ?? ""
+        startedAt = try container.decodeIfPresent(String.self, forKey: .startedAt)
+        completedAt = try container.decodeIfPresent(String.self, forKey: .completedAt)
+    }
+
     var isTerminal: Bool {
         let normalized = state.lowercased()
-        return normalized.contains("completed") || normalized.contains("failed") || normalized.contains("accepted")
+        return normalized.contains("completed") || normalized.contains("done") || normalized.contains("failed")
     }
 }
 

@@ -296,9 +296,15 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
         let escaped = threadId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? threadId
         await Self.log("开始读取聊天历史，thread=\(threadId) endpoint=/api/chat/history host=\(baseURL.host() ?? "unknown")")
         let (data, _) = try await request("GET", path: "api/chat/history?thread_id=\(escaped)")
-        let history = try JSONDecoder.snakeCase.decode(ChatThreadHistoryResponse.self, from: data)
-        await Self.log("聊天历史读取成功，thread=\(threadId) turns=\(history.turns.count)")
-        return history
+        do {
+            let history = try JSONDecoder.snakeCase.decode(ChatThreadHistoryResponse.self, from: data)
+            await Self.log("聊天历史读取成功，thread=\(threadId) turns=\(history.turns.count)")
+            return history
+        } catch {
+            let preview = String(data: data.prefix(800), encoding: .utf8) ?? "<non-utf8 body size=\(data.count)>"
+            await Self.log("聊天历史解码失败，thread=\(threadId) bodyPreview=\(preview)")
+            throw GatewayError.httpError(200, body: "聊天历史响应结构不兼容：\(error.localizedDescription)")
+        }
     }
 
     func sendThreadMessage(threadId: String, content: String) async throws -> ChatSendResponse {

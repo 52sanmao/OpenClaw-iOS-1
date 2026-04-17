@@ -137,7 +137,12 @@ final class RemoteMemoryRepository: MemoryRepository {
             return response
         } catch {
             await MainActor.run {
-                AppLogStore.shared.append("stats/exec 请求失败 command=\(command) args=\(args ?? "") error=\(error.localizedDescription)")
+                if let gatewayError = error as? GatewayError,
+                   case .httpError(404, _) = gatewayError {
+                    AppLogStore.shared.append("stats/exec 请求失败 command=\(command) args=\(args ?? "") error=当前部署未启用 stats/exec；记忆/技能页不可用，但聊天主链路可能仍正常")
+                } else {
+                    AppLogStore.shared.append("stats/exec 请求失败 command=\(command) args=\(args ?? "") error=\(error.localizedDescription)")
+                }
             }
             throw error
         }
