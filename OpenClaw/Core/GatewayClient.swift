@@ -292,11 +292,12 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
             return nil
         }
         return [
-            .message(
-                .init(
-                    role: .assistant,
-                    content: [.outputText(.init(text: text))]
-                )
+            ChatCompletionResponse.OutputItem(
+                type: "message",
+                role: "assistant",
+                content: [
+                    ChatCompletionResponse.ContentItem(type: "output_text", text: text)
+                ]
             )
         ]
     }
@@ -318,7 +319,8 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
     }
 
     func sendThreadMessage(threadId: String, content: String) async throws -> ChatSendResponse {
-        let body = ChatSendRequest(threadId: threadId, content: content)
+        let timezone = TimeZone.current.identifier
+        let body = ChatSendRequest(content: content, threadId: threadId, timezone: timezone)
         let bodyData = try JSONEncoder().encode(body)
         let (data, _) = try await request("POST", path: "api/chat/send", body: bodyData)
         return try JSONDecoder.snakeCase.decode(ChatSendResponse.self, from: data)
@@ -361,7 +363,7 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
     }
 
     func validateConnection() async throws {
-        _ = try await stats("v1/models") as OpenAIModelsResponse
+        let _: ResponsesModelsEnvelope = try await stats("v1/models")
     }
 
     private func request(_ method: String, path: String, body: Data? = nil) async throws -> (Data, URLResponse) {
