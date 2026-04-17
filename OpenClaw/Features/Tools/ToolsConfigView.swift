@@ -23,6 +23,10 @@ struct ToolsConfigView: View {
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                         .padding(.horizontal, Spacing.xs)
+                    Text("右下角日志会显示 tools-list、mcp-list、mcp-tools 的请求结果，可直接看到失败发生在哪一个 stats/exec 命令。")
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.neutral)
+                        .padding(.horizontal, Spacing.xs)
                 }
             }
         }

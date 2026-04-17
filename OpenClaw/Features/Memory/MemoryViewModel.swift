@@ -38,11 +38,14 @@ final class MemoryViewModel {
 
     func loadFiles() async {
         isLoadingFiles = true
+        AppLogStore.shared.append("MemoryViewModel: 开始刷新记忆文件列表")
         do {
             files = try await repository.listFiles()
             fileError = nil
+            AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新完成 count=\(files.count)")
         } catch {
             fileError = error
+            AppLogStore.shared.append("MemoryViewModel: 记忆文件列表刷新失败 error=\(error.localizedDescription)")
         }
         isLoadingFiles = false
     }
@@ -51,11 +54,14 @@ final class MemoryViewModel {
 
     func loadSkills() async {
         isLoadingSkills = true
+        AppLogStore.shared.append("MemoryViewModel: 开始刷新技能列表")
         do {
             skills = try await repository.listSkills()
             skillError = nil
+            AppLogStore.shared.append("MemoryViewModel: 技能列表刷新完成 count=\(skills.count)")
         } catch {
             skillError = error
+            AppLogStore.shared.append("MemoryViewModel: 技能列表刷新失败 error=\(error.localizedDescription)")
         }
         isLoadingSkills = false
     }
@@ -66,10 +72,13 @@ final class MemoryViewModel {
         skillFiles = []
         isLoadingSkillFiles = true
         skillFilesError = nil
+        AppLogStore.shared.append("MemoryViewModel: 开始刷新技能文件 skill=\(skill.id)")
         do {
             skillFiles = try await repository.listSkillFiles(skillId: skill.id)
+            AppLogStore.shared.append("MemoryViewModel: 技能文件刷新完成 skill=\(skill.id) count=\(skillFiles.count)")
         } catch {
             skillFilesError = error
+            AppLogStore.shared.append("MemoryViewModel: 技能文件刷新失败 skill=\(skill.id) error=\(error.localizedDescription)")
         }
         isLoadingSkillFiles = false
     }
@@ -80,11 +89,14 @@ final class MemoryViewModel {
         fileContent = nil
         isLoadingContent = true
         contentError = nil
+        AppLogStore.shared.append("MemoryViewModel: 开始读取技能文件 skill=\(entry.skillId) path=\(entry.id)")
         do {
             let text = try await repository.readSkillFile(skillId: entry.skillId, relativePath: entry.id)
             fileContent = MemoryFileContent(path: entry.absolutePath, text: text)
+            AppLogStore.shared.append("MemoryViewModel: 技能文件读取完成 path=\(entry.absolutePath)")
         } catch {
             contentError = error
+            AppLogStore.shared.append("MemoryViewModel: 技能文件读取失败 path=\(entry.absolutePath) error=\(error.localizedDescription)")
         }
         isLoadingContent = false
     }
@@ -98,15 +110,19 @@ final class MemoryViewModel {
         comments = []
         submitResult = nil
         submitError = nil
+        AppLogStore.shared.append("MemoryViewModel: 开始读取记忆文件 path=\(file.path)")
         do {
             let content = try await repository.readFile(path: file.path)
             if content.isEmpty {
                 contentError = MemoryError.fileNotFound(file.path)
+                AppLogStore.shared.append("MemoryViewModel: 记忆文件为空 path=\(file.path)")
             } else {
                 fileContent = content
+                AppLogStore.shared.append("MemoryViewModel: 记忆文件读取完成 path=\(content.path)")
             }
         } catch {
             contentError = error
+            AppLogStore.shared.append("MemoryViewModel: 记忆文件读取失败 path=\(file.path) error=\(error.localizedDescription)")
         }
         isLoadingContent = false
     }

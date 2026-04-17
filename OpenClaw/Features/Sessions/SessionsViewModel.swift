@@ -26,11 +26,14 @@ final class SessionsViewModel {
 
     func load() async {
         isLoading = true
+        AppLogStore.shared.append("SessionsViewModel: 开始刷新会话列表")
         do {
             sessions = try await repository.fetchSessions(limit: 500)
             error = nil
+            AppLogStore.shared.append("SessionsViewModel: 会话列表刷新完成 count=\(sessions.count) subagents=\(subagents.count) hasMain=\(mainSession != nil)")
         } catch {
             self.error = error
+            AppLogStore.shared.append("SessionsViewModel: 会话列表刷新失败 error=\(error.localizedDescription)")
         }
         isLoading = false
     }

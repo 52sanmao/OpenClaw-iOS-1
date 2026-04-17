@@ -26,7 +26,7 @@ struct MemoryTab: View {
                 case .memory:
                     memoryList
                 case .skills:
-                    SkillsListView(vm: vm)
+                    skillsList
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -98,7 +98,13 @@ struct MemoryTab: View {
             if vm.isLoadingFiles {
                 CardLoadingView(minHeight: 60)
             } else if let err = vm.fileError {
-                CardErrorView(error: err, minHeight: 60)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    CardErrorView(error: err, minHeight: 60)
+                    Text("记忆文件依赖 memory-list / memory_get / file-read。请查看右下角日志确认失败在列表、读取还是服务端未启用接口。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+                .padding(.vertical, Spacing.xxs)
             } else if vm.files.isEmpty {
                 ContentUnavailableView(
                     "没有文件",
@@ -111,6 +117,33 @@ struct MemoryTab: View {
         .refreshable {
             await vm.loadFiles()
             Haptics.shared.refreshComplete()
+        }
+    }
+
+    @ViewBuilder
+    private var skillsList: some View {
+        if !vm.skills.isEmpty {
+            SkillsListView(vm: vm)
+        } else if vm.isLoadingSkills {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let err = vm.skillError {
+            List {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    CardErrorView(error: err, minHeight: 60)
+                    Text("技能页依赖 skills-list / skill-files / skill-read。请查看右下角日志确认是目录读取失败，还是当前部署未启用 stats/exec。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+                .padding(.vertical, Spacing.xxs)
+            }
+            .listStyle(.insetGrouped)
+            .refreshable {
+                await vm.loadSkills()
+                Haptics.shared.refreshComplete()
+            }
+        } else {
+            SkillsListView(vm: vm)
         }
     }
 

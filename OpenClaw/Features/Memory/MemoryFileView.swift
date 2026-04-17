@@ -20,6 +20,14 @@ struct MemoryFileView: View {
                     systemImage: "exclamationmark.triangle",
                     description: Text(error.localizedDescription)
                 )
+                .overlay(alignment: .bottom) {
+                    Text(loadHint)
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.bottom, Spacing.md)
+                }
             } else if let content = vm.fileContent {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -80,6 +88,16 @@ struct MemoryFileView: View {
                 await vm.loadFile(file)
             }
         }
+    }
+
+    private var loadHint: String {
+        if let skillEntry {
+            return "该页面依赖 skill-read 读取技能文件。请查看右下角日志确认失败在 skill-files、skill-read，还是当前服务器未启用 stats/exec。"
+        }
+        if file.path.hasPrefix("memory/") || file.path == "MEMORY.md" {
+            return "该页面优先通过 memory_get 读取记忆内容；若失败，请查看右下角日志确认是 tool 接口失败还是服务端返回空内容。"
+        }
+        return "该页面通过 file-read 读取根目录文件。请查看右下角日志确认服务端是否启用了 stats/exec 文件读取命令。"
     }
 }
 

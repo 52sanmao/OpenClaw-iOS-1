@@ -55,6 +55,9 @@ struct CommandsDetailView: View {
                             Text(adminVM.unavailableDescription)
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
+                            Text("右下角日志会显示 models-status、agents-list、channels-list 的逐步请求结果，可直接判断失败发生在哪个 stats/exec 命令。")
+                                .font(AppTypography.nano)
+                                .foregroundStyle(AppColors.neutral)
                         }
                         .padding(.vertical, Spacing.xxs)
                     }

@@ -61,8 +61,16 @@ struct SessionsView: View {
                 Haptics.shared.refreshComplete()
             }
         } else if let err = vm.error {
-            List { CardErrorView(error: err, minHeight: 60) }
-                .listStyle(.insetGrouped)
+            List {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    CardErrorView(error: err, minHeight: 60)
+                    Text("会话页优先使用 sessions_list / sessions_history；若服务器未启用扩展接口，会自动回退到 /api/chat/threads 与 /api/chat/history。请查看右下角日志确认当前走的是哪条路径。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+                .padding(.vertical, Spacing.xxs)
+            }
+            .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView(
                 "暂无会话",
@@ -102,8 +110,16 @@ struct SessionsView: View {
                 Haptics.shared.refreshComplete()
             }
         } else if let err = vm.error {
-            List { CardErrorView(error: err, minHeight: 60) }
-                .listStyle(.insetGrouped)
+            List {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    CardErrorView(error: err, minHeight: 60)
+                    Text("子代理列表与轨迹页同样支持从扩展接口回退到线程历史。请查看右下角日志，确认失败发生在 sessions_list、sessions_history 还是底层 /api/chat/history。")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+                .padding(.vertical, Spacing.xxs)
+            }
+            .listStyle(.insetGrouped)
         } else {
             ContentUnavailableView(
                 "暂无子代理",
