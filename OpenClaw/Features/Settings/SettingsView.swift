@@ -169,8 +169,15 @@ struct SettingsView: View {
                 }
                 Haptics.shared.success()
             } catch {
-                AppLogStore.shared.append("连接测试失败：\(error.localizedDescription)")
-                testResult = TestResult(isSuccess: false, message: error.localizedDescription)
+                let failure = error.localizedDescription
+                AppLogStore.shared.append("连接测试失败：\(failure)")
+                connectionDetails = [
+                    "聊天主链路验证失败：\(failure)",
+                    "请检查 /v1/models、/api/chat/thread/new、/api/chat/send、/api/chat/history 的服务端日志与网关鉴权配置。",
+                    "右下角日志浮窗会记录每个请求阶段，便于确认究竟失败在模型探活、建线程、发送还是历史轮询。"
+                ]
+                showConnectionDetails = true
+                testResult = TestResult(isSuccess: false, message: failure)
                 Haptics.shared.error()
             }
             isTesting = false

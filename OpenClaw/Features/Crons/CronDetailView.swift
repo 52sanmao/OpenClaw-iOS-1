@@ -123,6 +123,9 @@ struct CronDetailView: View {
                     Text("如果这里报错，而聊天页仍可使用，通常表示是 routines 接口本身失败，而不是整个 App 不可用。")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
+                    Text("右下角日志浮窗会额外记录 /api/routines、/api/routines/{id}/runs、trigger、toggle 的请求阶段，便于确认失败发生在列表刷新、读历史、立即运行还是启停操作。")
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.neutral)
                 }
             }
 

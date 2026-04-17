@@ -2,12 +2,17 @@ import SwiftUI
 
 /// Add a new gateway account (used for first setup and adding additional accounts).
 struct AddAccountView: View {
+    private enum DefaultGatewayConfig {
+        static let baseURL = "https://rare-lark.agent4.near.ai/"
+        static let token = "b5af51dc17344eab80981e47f5ab5784a0f1df4846e7229fba421ae97021aa1e"
+    }
+
     var accountStore: AccountStore
     var onDone: (() -> Void)?
 
     @State private var nameInput = ""
-    @State private var urlInput = ""
-    @State private var tokenInput = ""
+    @State private var urlInput = DefaultGatewayConfig.baseURL
+    @State private var tokenInput = DefaultGatewayConfig.token
     @State private var agentIdInput = "orchestrator"
     @State private var workspacePathInput = ""
     @State private var errorMessage: String?
@@ -137,6 +142,14 @@ struct AddAccountView: View {
             Spacer()
         }
         .padding(Spacing.xl)
+        .onAppear {
+            if urlInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                urlInput = DefaultGatewayConfig.baseURL
+            }
+            if tokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                tokenInput = DefaultGatewayConfig.token
+            }
+        }
     }
 
     private func save() {

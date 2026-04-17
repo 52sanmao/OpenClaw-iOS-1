@@ -52,8 +52,27 @@ struct HomeView: View {
                         .padding(.top, Spacing.sm)
                     }
 
+                    if let systemError = systemVM.error {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("首页扩展接口失败")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColors.warning)
+                            Text(systemError.localizedDescription)
+                                .font(AppTypography.captionMono)
+                                .foregroundStyle(AppColors.neutral)
+                            Text("如果右下角日志里仍能看到 /v1/models、/api/chat/thread/new、/api/chat/send、/api/chat/history 成功，这说明失败点在统计扩展接口，而不是聊天主链路。")
+                                .font(AppTypography.nano)
+                                .foregroundStyle(AppColors.neutral)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     Text("首页卡片为空通常表示扩展统计接口未启用；这不会阻止 IronClaw 的聊天、线程历史或定时任务主路径。")
                         .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("若要定位失败阶段，请打开右下角日志浮窗；日志会记录模型探活、建线程、发送消息、历史轮询与 routines 请求。")
+                        .font(AppTypography.nano)
                         .foregroundStyle(AppColors.neutral)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }

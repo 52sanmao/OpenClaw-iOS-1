@@ -284,17 +284,24 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
     }
 
     func createChatThread() async throws -> ChatThreadInfo {
+        await Self.log("开始创建聊天线程：/api/chat/thread/new")
         let (data, _) = try await request("POST", path: "api/chat/thread/new")
-        return try JSONDecoder.snakeCase.decode(ChatThreadInfo.self, from: data)
+        let thread = try JSONDecoder.snakeCase.decode(ChatThreadInfo.self, from: data)
+        await Self.log("聊天线程创建成功，thread=\(thread.id)")
+        return thread
     }
 
     func loadChatHistory(threadId: String) async throws -> ChatThreadHistoryResponse {
         let escaped = threadId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? threadId
+        await Self.log("开始读取聊天历史，thread=\(threadId)")
         let (data, _) = try await request("GET", path: "api/chat/history?thread_id=\(escaped)")
-        return try JSONDecoder.snakeCase.decode(ChatThreadHistoryResponse.self, from: data)
+        let history = try JSONDecoder.snakeCase.decode(ChatThreadHistoryResponse.self, from: data)
+        await Self.log("聊天历史读取成功，thread=\(threadId) turns=\(history.turns.count)")
+        return history
     }
 
     func sendThreadMessage(threadId: String, content: String) async throws -> ChatSendResponse {
+        await Self.log("开始发送聊天消息，thread=\(threadId) chars=\(content.count)")
         let body = try JSONEncoder().encode(
             ChatSendRequest(
                 content: content,
@@ -303,46 +310,62 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
             )
         )
         let (data, _) = try await request("POST", path: "api/chat/send", body: body)
-        return try JSONDecoder.snakeCase.decode(ChatSendResponse.self, from: data)
+        let response = try JSONDecoder.snakeCase.decode(ChatSendResponse.self, from: data)
+        await Self.log("聊天消息发送成功，thread=\(threadId)")
+        return response
     }
 
     func waitForThreadTurn(threadId: String, afterTurnCount: Int, timeout: TimeInterval = 30) async throws -> ChatStreamPollResult {
         let deadline = Date().addingTimeInterval(timeout)
+        var attempt = 0
         while Date() < deadline {
+            attempt += 1
             let history = try await loadChatHistory(threadId: threadId)
+            let latestState = history.turns.last?.state ?? "none"
+            await Self.log("轮询聊天历史，thread=\(threadId) attempt=\(attempt) turns=\(history.turns.count) latest=\(latestState)")
             if let latest = history.turns.last,
                history.turns.count > afterTurnCount,
                latest.isTerminal {
+                await Self.log("聊天历史轮询命中终态，thread=\(threadId) state=\(latest.state)")
                 return ChatStreamPollResult(history: history, latestTurn: latest)
             }
             try await Task.sleep(nanoseconds: 300_000_000)
         }
+        await Self.log("聊天历史轮询超时，thread=\(threadId) timeout=\(Int(timeout))s")
         throw GatewayError.httpError(408, body: "Timed out waiting for IronClaw thread response")
     }
 
     func listRoutines() async throws -> [RoutineJobDTO] {
-        await Self.log("读取定时任务列表")
+        await Self.log("开始读取定时任务列表：/api/routines")
         let (data, _) = try await request("GET", path: "api/routines")
         let response = try JSONDecoder.snakeCase.decode(RoutineListResponseDTO.self, from: data)
+        await Self.log("定时任务列表读取成功，count=\(response.routines.count)")
         return response.routines
     }
 
     func loadRoutineRuns(jobId: String) async throws -> RoutineRunsResponseDTO {
         let escaped = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
+        await Self.log("开始读取任务运行历史，job=\(jobId)")
         let (data, _) = try await request("GET", path: "api/routines/\(escaped)/runs")
-        return try JSONDecoder.snakeCase.decode(RoutineRunsResponseDTO.self, from: data)
+        let response = try JSONDecoder.snakeCase.decode(RoutineRunsResponseDTO.self, from: data)
+        await Self.log("任务运行历史读取成功，job=\(jobId) count=\(response.runs.count)")
+        return response
     }
 
     func triggerRoutine(jobId: String, mode: String = "force") async throws {
         let escaped = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
+        await Self.log("开始触发任务，job=\(jobId) mode=\(mode)")
         let body = try JSONEncoder().encode(RoutineTriggerRequest(mode: mode))
         _ = try await request("POST", path: "api/routines/\(escaped)/trigger", body: body)
+        await Self.log("任务触发成功，job=\(jobId)")
     }
 
     func setRoutineEnabled(jobId: String, enabled: Bool) async throws {
         let escaped = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
+        await Self.log("开始切换任务启用状态，job=\(jobId) enabled=\(enabled)")
         let body = try JSONEncoder().encode(RoutineToggleRequest(enabled: enabled))
         _ = try await request("POST", path: "api/routines/\(escaped)/toggle", body: body)
+        await Self.log("任务启用状态切换成功，job=\(jobId) enabled=\(enabled)")
     }
 
     func validateConnection() async throws {
@@ -352,9 +375,11 @@ struct GatewayClient: GatewayClientProtocol, Sendable {
         req.httpMethod = "GET"
         req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
+        await Self.log("开始验证模型接口：/v1/models host=\(url.host() ?? "unknown") tokenLoaded=\(!token.isEmpty)")
         Self.logger.debug("GET /v1/models")
         let (data, response) = try await URLSession.shared.data(for: req)
         try validateHTTPResponse(response, data: data, path: "v1/models")
+        await Self.log("模型接口验证成功：/v1/models")
     }
 
     // MARK: - Private helpers
