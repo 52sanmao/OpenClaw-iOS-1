@@ -31,9 +31,15 @@ struct ToolsConfigView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("工具与 MCP")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "工具与 MCP") {
+                    Text(vm.mcpServers.isEmpty ? "原生工具配置" : "\(vm.mcpServers.count) 个 MCP 服务器")
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                }
+            }
             if !vm.mcpServers.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
                     NavigationLink {

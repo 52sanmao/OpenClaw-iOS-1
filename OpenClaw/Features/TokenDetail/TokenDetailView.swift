@@ -58,8 +58,26 @@ struct TokenDetailView: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
         }
-        .navigationTitle("令牌用量")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "令牌用量") {
+                    if let usage = vm.data {
+                        Text("\(Formatters.tokens(usage.totals.totalTokens)) · \(vm.selectedPeriod.label)")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else if vm.isLoading {
+                        Text("加载中…")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text(vm.selectedPeriod.label)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
+        }
         .refreshable {
             await vm.refresh()
             await loadPipelines()

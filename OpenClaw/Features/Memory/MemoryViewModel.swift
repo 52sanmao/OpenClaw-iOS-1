@@ -195,7 +195,7 @@ final class MemoryViewModel {
 
         do {
             let response = try await client.chatCompletion(request)
-            pageCommentResult = response.text ?? "Agent returned no content."
+            pageCommentResult = response.text ?? "代理未返回内容。"
             Haptics.shared.success()
         } catch {
             pageCommentError = error
@@ -224,7 +224,7 @@ final class MemoryViewModel {
 
         do {
             let response = try await client.chatCompletion(request)
-            maintenanceResult = response.text ?? "Agent returned no content."
+            maintenanceResult = response.text ?? "代理未返回内容。"
             Haptics.shared.success()
         } catch {
             maintenanceError = error
@@ -250,7 +250,7 @@ final class MemoryViewModel {
 
         do {
             let response = try await client.chatCompletion(request)
-            submitResult = response.text ?? "Agent returned no content."
+            submitResult = response.text ?? "代理未返回内容。"
             Haptics.shared.success()
         } catch {
             submitError = error
@@ -267,9 +267,9 @@ enum MemoryError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .fileNotFound(let path):
-            "File not found: \(path)"
+            "未找到文件：\(path)"
         case .commandFailed(let command, let exitCode, let stderr):
-            "Command '\(command)' failed (exit \(exitCode))\(stderr.isEmpty ? "" : ": \(stderr)")"
+            "命令“\(command)”执行失败（退出码 \(exitCode)）\(stderr.isEmpty ? "" : "：\(stderr)")"
         }
     }
 }

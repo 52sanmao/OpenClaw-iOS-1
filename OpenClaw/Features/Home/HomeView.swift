@@ -7,9 +7,9 @@ struct HomeView: View {
     @State private var commandsVM: CommandsViewModel
     @State private var tokenUsageVM: TokenUsageViewModel
     @State private var showAccountSwitcher = false
-    @State private var taskToggleEnabled = true
     @State private var cardOrder = HomeCardOrderStore.load()
     @State private var draggingCard: HomeCardID?
+    @State private var draggingOffset: CGFloat = 0
 
     @Bindable private var accountStore: AccountStore
     private let cronVM: CronSummaryViewModel
@@ -42,24 +42,18 @@ struct HomeView: View {
                                         .padding(Spacing.xs)
                                 }
                             }
-                            .scaleEffect(draggingCard == card.id ? 1.01 : 1.0)
-                            .opacity(draggingCard == card.id ? 0.92 : 1.0)
-                            .animation(.easeInOut(duration: 0.18), value: draggingCard)
-                            .onLongPressGesture(minimumDuration: 0.35) {
-                                draggingCard = card.id
-                            }
-                            .gesture(
-                                DragGesture(minimumDistance: 12)
-                                    .onChanged { value in
-                                        guard draggingCard == card.id else { return }
-                                        reorderCard(card.id, translation: value.translation.height)
-                                    }
-                                    .onEnded { _ in
-                                        guard draggingCard == card.id else { return }
-                                        draggingCard = nil
-                                        HomeCardOrderStore.save(cardOrder)
-                                    }
+                            .scaleEffect(draggingCard == card.id ? 1.02 : 1.0)
+                            .offset(y: draggingCard == card.id ? draggingOffset : 0)
+                            .shadow(
+                                color: draggingCard == card.id ? .black.opacity(0.12) : .clear,
+                                radius: draggingCard == card.id ? 14 : 0,
+                                x: 0,
+                                y: draggingCard == card.id ? 8 : 0
                             )
+                            .opacity(draggingCard == card.id ? 0.95 : 1.0)
+                            .zIndex(draggingCard == card.id ? 1 : 0)
+                            .animation(.easeInOut(duration: 0.18), value: draggingCard)
+                            .simultaneousGesture(cardDragGesture(for: card.id))
                     }
 
                     if systemVM.data == nil && tokenUsageVM.data == nil {
@@ -105,7 +99,6 @@ struct HomeView: View {
                 async let b: Void = blogVM.refresh()
                 async let t: Void = tokenUsageVM.refresh()
                 _ = await (s, c, o, b, t)
-                taskToggleEnabled = (cronVM.data ?? []).contains { $0.enabled }
                 Haptics.shared.refreshComplete()
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -152,7 +145,6 @@ struct HomeView: View {
         }
         .onAppear {
             systemVM.startPolling()
-            taskToggleEnabled = (cronVM.data ?? []).contains { $0.enabled }
             cardOrder = HomeCardOrderStore.load()
         }
         .onDisappear {
@@ -185,26 +177,44 @@ struct HomeView: View {
     private func homeCardView(_ id: HomeCardID) -> some View {
         switch id {
         case .systemHealth:
-            SystemHealthCard(vm: systemVM)
+            NavigationLink {
+                SystemHealthDetailView(vm: systemVM)
+            } label: {
+                SystemHealthCard(vm: systemVM)
+            }
+            .buttonStyle(.plain)
         case .connectionDiagnostics:
             connectionDiagnosticsCard
         case .settingsModules:
             settingsModulesCard
-        case .taskToggle:
-            taskToggleCard
         case .commands:
             CommandsCard(vm: commandsVM, client: client)
         case .cronSummary:
-            CronSummaryCard(vm: cronVM)
+            NavigationLink {
+                CronsTab(vm: cronVM, detailRepository: cronDetailRepository, client: client)
+            } label: {
+                CronSummaryCard(vm: cronVM)
+            }
+            .buttonStyle(.plain)
         case .tokenUsage:
             TokenUsageCard(vm: tokenUsageVM, detailRepository: cronDetailRepository)
         case .outreach:
             if outreachVM.data != nil {
-                OutreachStatsCard(vm: outreachVM)
+                NavigationLink {
+                    OutreachDetailView(vm: outreachVM)
+                } label: {
+                    OutreachStatsCard(vm: outreachVM)
+                }
+                .buttonStyle(.plain)
             }
         case .blogPipeline:
             if blogVM.data != nil {
-                BlogPipelineCard(vm: blogVM)
+                NavigationLink {
+                    BlogPipelineDetailView(vm: blogVM)
+                } label: {
+                    BlogPipelineCard(vm: blogVM)
+                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -222,18 +232,45 @@ struct HomeView: View {
 
     private func reorderCard(_ id: HomeCardID, translation: CGFloat) {
         guard let sourceIndex = cardOrder.firstIndex(of: id) else { return }
-        let threshold: CGFloat = 70
-        var targetIndex = sourceIndex
-        if translation > threshold {
-            targetIndex = min(sourceIndex + 1, cardOrder.count - 1)
-        } else if translation < -threshold {
-            targetIndex = max(sourceIndex - 1, 0)
-        }
+        let cardStep = max(translation / 120, -1.8)
+        let targetIndex = min(
+            max(sourceIndex + Int(cardStep.rounded()), 0),
+            cardOrder.count - 1
+        )
         guard targetIndex != sourceIndex else { return }
         withAnimation(.easeInOut(duration: 0.18)) {
             let moved = cardOrder.remove(at: sourceIndex)
             cardOrder.insert(moved, at: targetIndex)
         }
+    }
+
+    private func cardDragGesture(for id: HomeCardID) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.25)
+            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    if draggingCard != id {
+                        draggingCard = id
+                        draggingOffset = 0
+                    }
+                case .second(true, let drag?):
+                    if draggingCard != id {
+                        draggingCard = id
+                    }
+                    draggingOffset = drag.translation.height
+                    reorderCard(id, translation: drag.translation.height)
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in
+                guard draggingCard == id else { return }
+                draggingCard = nil
+                draggingOffset = 0
+                HomeCardOrderStore.save(cardOrder)
+                Haptics.shared.success()
+            }
     }
 
     @ViewBuilder
@@ -283,18 +320,17 @@ struct HomeView: View {
                                 .foregroundStyle(AppColors.neutral)
                         }
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppColors.neutral)
                     }
 
                     HStack(spacing: Spacing.xs) {
                         Image(systemName: systemVM.error == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundStyle(systemVM.error == nil ? AppColors.success : AppColors.warning)
-                        Text(systemVM.error == nil ? "聊天主链路看起来可用" : "统计扩展存在异常，建议打开诊断查看详情")
+                        Text(systemVM.error == nil ? "聊天主链路看起来可用" : "统计扩展存在异常，建议打开诊断页检查")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.neutral)
                     }
+
+                    HomeCardDetailHint()
                 }
             }
         }
@@ -303,7 +339,7 @@ struct HomeView: View {
 
     private var settingsModulesCard: some View {
         NavigationLink {
-            SettingsView(accountStore: accountStore, client: client)
+            CommandsDetailView(commandsVM: commandsVM, client: client)
         } label: {
             CardContainer(
                 title: "设置分组",
@@ -311,90 +347,85 @@ struct HomeView: View {
                 isStale: false,
                 isLoading: false
             ) {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("模型、助手、频道、网络、扩展、MCP 服务、技能库、用户管理")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.xs) {
-                        modulePill("模型", icon: "cpu")
-                        modulePill("助手", icon: "sparkles")
-                        modulePill("频道", icon: "bubble.left.and.bubble.right")
-                        modulePill("网络", icon: "network")
-                        modulePill("扩展", icon: "puzzlepiece.extension")
-                        modulePill("MCP 服务", icon: "server.rack")
-                        modulePill("技能库", icon: "square.stack.3d.up")
-                        modulePill("用户管理", icon: "person.2")
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    HStack(alignment: .top, spacing: Spacing.sm) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("核心配置入口")
+                                .font(AppTypography.body)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                            Text("聚合模型、助手、渠道、网络、扩展与 MCP 的常用入口，避免在首页堆满所有模块。")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColors.neutral)
+                        }
+                        Spacer()
                     }
+
+                    VStack(spacing: Spacing.xs) {
+                        settingsModuleRow(
+                            title: "模型与助手",
+                            subtitle: "默认模型、回退策略、代理分配",
+                            icon: "cpu",
+                            tint: AppColors.metricPrimary
+                        )
+                        settingsModuleRow(
+                            title: "渠道与网络",
+                            subtitle: "聊天渠道、账号连接、网络状态",
+                            icon: "bubble.left.and.bubble.right",
+                            tint: AppColors.success
+                        )
+                        settingsModuleRow(
+                            title: "扩展与 MCP",
+                            subtitle: "原生工具、MCP 服务与工具可用性",
+                            icon: "server.rack",
+                            tint: AppColors.metricTertiary
+                        )
+                    }
+
+                    HomeCardDetailHint()
                 }
             }
         }
         .buttonStyle(.plain)
     }
 
-    private var taskToggleCard: some View {
-        CardContainer(
-            title: "任务",
-            systemImage: "clock.fill",
-            isStale: false,
-            isLoading: false
-        ) {
-            HStack(spacing: Spacing.sm) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("任务开关")
-                        .font(AppTypography.body)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.primary)
-                    Text(taskToggleEnabled ? "当前至少有一个任务已启用" : "当前所有任务都已关闭")
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppColors.neutral)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $taskToggleEnabled)
-                    .labelsHidden()
-                    .scaleEffect(0.75)
-                    .tint(AppColors.primaryAction)
-                    .onChange(of: taskToggleEnabled) { _, newValue in
-                        Task { await setAllTasksEnabled(newValue) }
-                    }
-            }
-        }
-    }
-
     @ViewBuilder
-    private func modulePill(_ title: String, icon: String) -> some View {
-        HStack(spacing: Spacing.xxs) {
-            Image(systemName: icon)
-                .font(AppTypography.micro)
-            Text(title)
-                .font(AppTypography.micro)
-                .lineLimit(1)
+    private func settingsModuleRow(
+        title: String,
+        subtitle: String,
+        icon: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: Spacing.sm) {
+            ZStack {
+                RoundedRectangle(cornerRadius: AppRadius.sm)
+                    .fill(AppColors.tintedBackground(tint, opacity: 0.14))
+                    .frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTypography.captionBold)
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColors.neutral)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: Spacing.xs)
         }
-        .foregroundStyle(AppColors.primaryAction)
-        .padding(.horizontal, Spacing.xs)
-        .padding(.vertical, Spacing.xxs)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.primaryAction.opacity(0.08), in: RoundedRectangle(cornerRadius: AppRadius.sm))
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .fill(Color(.systemBackground))
+        )
     }
 
-    private func setAllTasksEnabled(_ enabled: Bool) async {
-        guard let jobs = cronVM.data, !jobs.isEmpty else { return }
-        for job in jobs where job.enabled != enabled {
-            do {
-                try await cronDetailRepository.setEnabled(jobId: job.id, enabled: enabled)
-            } catch {
-                taskToggleEnabled = !enabled
-                Haptics.shared.error()
-                return
-            }
-        }
-        await cronVM.refresh()
-        taskToggleEnabled = (cronVM.data ?? []).contains { $0.enabled }
-        Haptics.shared.success()
-    }
 }
 
 private struct HomeCardDescriptor: Identifiable {
@@ -405,7 +436,6 @@ private enum HomeCardID: String, CaseIterable, Codable {
     case systemHealth
     case connectionDiagnostics
     case settingsModules
-    case taskToggle
     case commands
     case cronSummary
     case tokenUsage
@@ -432,6 +462,6 @@ private enum HomeCardOrderStore {
     }
 
     private static var defaultOrder: [HomeCardID] {
-        [.systemHealth, .connectionDiagnostics, .settingsModules, .taskToggle, .commands, .cronSummary, .tokenUsage, .outreach, .blogPipeline]
+        [.systemHealth, .connectionDiagnostics, .settingsModules, .commands, .cronSummary, .tokenUsage, .outreach, .blogPipeline]
     }
 }

@@ -63,6 +63,8 @@ struct BlogPipelineCard: View {
                         }
                         .accessibilityLabel("最近发布：\(title)")
                     }
+
+                    HomeCardDetailHint()
                 }
             } else if vm.isLoading {
                 CardLoadingView(minHeight: 100)

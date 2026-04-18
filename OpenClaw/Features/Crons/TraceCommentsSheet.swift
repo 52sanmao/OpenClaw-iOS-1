@@ -124,7 +124,7 @@ struct TraceCommentsSheet: View {
 
         do {
             let response = try await client.chatCompletion(request)
-            result = response.text ?? "Agent returned no content."
+            result = response.text ?? "代理未返回内容。"
             Haptics.shared.success()
         } catch {
             submitError = error

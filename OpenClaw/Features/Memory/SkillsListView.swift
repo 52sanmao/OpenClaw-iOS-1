@@ -8,7 +8,7 @@ struct SkillsListView: View {
         Group {
             if !vm.skills.isEmpty {
                 List {
-                    Section("Skill Files") {
+                    Section("技能文件") {
                         ForEach(vm.skills) { skill in
                             NavigationLink {
                                 SkillDetailView(vm: vm, skill: skill)
@@ -29,9 +29,9 @@ struct SkillsListView: View {
                 .listStyle(.insetGrouped)
             } else {
                 ContentUnavailableView(
-                    "No Skills",
+                    "没有技能",
                     systemImage: "bolt.fill",
-                    description: Text("No skill definitions found.")
+                    description: Text("当前未找到技能定义。")
                 )
             }
         }

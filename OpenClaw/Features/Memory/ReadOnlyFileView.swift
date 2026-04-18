@@ -12,7 +12,7 @@ struct ReadOnlyFileView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = vm.contentError {
                 ContentUnavailableView(
-                    "Cannot Load",
+                    "无法加载内容",
                     systemImage: "exclamationmark.triangle",
                     description: Text(error.localizedDescription)
                 )
@@ -27,9 +27,16 @@ struct ReadOnlyFileView: View {
                 .background(AppColors.neutral.opacity(0.04))
             }
         }
-        .navigationTitle(entry.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: entry.name) {
+                    Text(entry.id)
+                        .font(AppTypography.micro)
+                        .foregroundStyle(AppColors.neutral)
+                        .lineLimit(1)
+                }
+            }
             ToolbarItem(placement: .cancellationAction) {
                 if let content = vm.fileContent {
                     CopyToolbarButton(text: content.text)

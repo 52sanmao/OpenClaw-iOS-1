@@ -18,7 +18,7 @@ struct SessionTraceView: View {
 
     /// Init from a cron run (existing usage — oldest first).
     init(run: CronRun, repository: CronDetailRepository, jobName: String? = nil, client: GatewayClientProtocol? = nil) {
-        self.title = jobName ?? "Run Trace"
+        self.title = jobName ?? "运行轨迹"
         self.subtitle = run.runAtAbsolute
         self.sessionKey = run.sessionKey ?? run.sessionId ?? ""
         self.repository = SessionRepositoryAdapter(cronRepo: repository)
@@ -54,7 +54,7 @@ struct SessionTraceView: View {
 
             // Trace steps
             if isLoading && trace == nil {
-                Section("Execution Trace") {
+                Section("执行轨迹") {
                     CardLoadingView(minHeight: 100)
                 }
             } else if let trace {
@@ -77,7 +77,7 @@ struct SessionTraceView: View {
                     if trace.truncated {
                         HStack {
                             Spacer()
-                            Label("History truncated — older steps not shown", systemImage: "ellipsis.circle")
+                            Label("历史已截断，较早的步骤未显示", systemImage: "ellipsis.circle")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                             Spacer()
@@ -86,18 +86,18 @@ struct SessionTraceView: View {
                     }
                 } header: {
                     HStack {
-                        Text("Execution Trace")
-                        Text("(\(trace.steps.count) steps)")
+                        Text("执行轨迹")
+                        Text("(\(trace.steps.count) 个步骤)")
                             .foregroundStyle(AppColors.neutral)
                     }
                 }
             } else if let error {
-                Section("Execution Trace") {
+                Section("执行轨迹") {
                     CardErrorView(error: error)
                 }
             } else if sessionKey.isEmpty {
-                Section("Execution Trace") {
-                    Text("No session data available.")
+                Section("执行轨迹") {
+                    Text("当前没有可展示的会话数据。")
                         .font(AppTypography.body)
                         .foregroundStyle(AppColors.neutral)
                         .frame(maxWidth: .infinity, minHeight: 60)
@@ -105,9 +105,29 @@ struct SessionTraceView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Trace")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: title) {
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else if let trace {
+                        Text("\(trace.steps.count) 个步骤")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else if isLoading {
+                        Text("加载轨迹中…")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text("执行轨迹")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
             if !comments.isEmpty && client != nil {
                 ToolbarItem(placement: .primaryAction) {
                     Button { showSubmitSheet = true } label: {

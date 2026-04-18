@@ -47,7 +47,7 @@ struct CommentSheet: View {
                 case .page(let fileName, let filePath, let vm):
                     agentContent(heading: fileName, subheading: filePath, vm: vm)
                 case .skill(let skill, let files, let vm):
-                    agentContent(heading: skill.displayName, subheading: "skills/\(skill.id)/ \u{2014} \(files.count) files", vm: vm)
+                    agentContent(heading: skill.displayName, subheading: "skills/\(skill.id)/ \u{2014} \(files.count) 个文件", vm: vm)
                 }
 
                 if !agentHasActivity {

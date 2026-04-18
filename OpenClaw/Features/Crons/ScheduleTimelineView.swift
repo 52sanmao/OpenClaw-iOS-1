@@ -71,8 +71,22 @@ struct ScheduleTimelineView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("Schedule")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "定时计划") {
+                    if enabledJobs.isEmpty {
+                        Text("没有启用中的任务")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.warning)
+                    } else {
+                        Text("\(enabledJobs.count) 个启用任务")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
+        }
     }
 }
 

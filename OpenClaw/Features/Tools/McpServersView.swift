@@ -27,8 +27,22 @@ struct McpServersView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("MCP 服务器")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "MCP 服务器") {
+                    if vm.isLoadingMcpTools && vm.mcpDetails.isEmpty {
+                        Text("正在查询工具列表")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text("\(vm.mcpServers.count) 个服务器")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
+        }
         .task { await vm.loadMcpTools() }
     }
 

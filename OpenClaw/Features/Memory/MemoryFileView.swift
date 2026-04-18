@@ -16,7 +16,7 @@ struct MemoryFileView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = vm.contentError {
                 ContentUnavailableView(
-                    "Cannot Load",
+                    "无法加载内容",
                     systemImage: "exclamationmark.triangle",
                     description: Text(error.localizedDescription)
                 )
@@ -44,14 +44,29 @@ struct MemoryFileView: View {
                 }
             }
         }
-        .navigationTitle(file.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: file.name) {
+                    if let skillEntry {
+                        Text(skillEntry.id)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                            .lineLimit(1)
+                    } else {
+                        Text(file.path)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                            .lineLimit(1)
+                    }
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 HStack(spacing: Spacing.sm) {
                     Button { showPageComment = true } label: {
-                        Label("编辑", systemImage: "square.and.pencil")
+                        Image(systemName: "square.and.pencil")
                     }
+                    .accessibilityLabel("添加页面批注")
                     if !vm.comments.isEmpty {
                         Button { showSubmitSheet = true } label: {
                             HStack(spacing: Spacing.xxs) {
@@ -152,15 +167,13 @@ struct ParagraphRow: View {
                 }
 
                 Button(action: onAddComment) {
-                    HStack(spacing: Spacing.xxs) {
-                        Image(systemName: "square.and.pencil")
-                        Text(hasComments ? "继续编辑" : "编辑")
-                    }
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.primaryAction)
-                    .padding(.vertical, Spacing.xxs)
+                    Image(systemName: hasComments ? "plus.bubble.fill" : "square.and.pencil")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.primaryAction)
+                        .padding(.vertical, Spacing.xxs)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(hasComments ? "继续添加批注" : "添加批注")
             }
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.xs)

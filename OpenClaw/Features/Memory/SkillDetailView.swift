@@ -15,20 +15,20 @@ struct SkillDetailView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let err = vm.skillFilesError, vm.skillFiles.isEmpty {
                 ContentUnavailableView(
-                    "Cannot Load",
+                    "无法加载技能文件",
                     systemImage: "exclamationmark.triangle",
                     description: Text(err.localizedDescription)
                 )
             } else if vm.skillFiles.isEmpty && !vm.isLoadingSkillFiles {
                 ContentUnavailableView(
-                    "Empty Skill",
+                    "技能内容为空",
                     systemImage: "folder",
-                    description: Text("No files found in this skill.")
+                    description: Text("当前技能目录下没有可展示的文件。")
                 )
             } else {
                 List {
                     if !markdownFiles.isEmpty {
-                        Section("Documents") {
+                        Section("文档") {
                             ForEach(markdownFiles) { entry in
                                 NavigationLink {
                                     MemoryFileView(
@@ -44,7 +44,7 @@ struct SkillDetailView: View {
                     }
 
                     if !otherFiles.isEmpty {
-                        Section("Scripts & Config") {
+                        Section("脚本与配置") {
                             ForEach(otherFiles) { entry in
                                 NavigationLink {
                                     ReadOnlyFileView(vm: vm, entry: entry)
@@ -58,9 +58,21 @@ struct SkillDetailView: View {
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle(skill.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: skill.displayName) {
+                    if vm.isLoadingSkillFiles && vm.skillFiles.isEmpty {
+                        Text("加载技能文件中…")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text("\(vm.skillFiles.count) 个文件")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button { showSkillComment = true } label: {
                     Image(systemName: "text.bubble")

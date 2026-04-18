@@ -65,9 +65,25 @@ struct CommandsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("命令与管理")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "命令与管理") {
+                    if adminVM.error != nil && adminVM.modelsConfig == nil {
+                        Text("管理数据不可用")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.warning)
+                    } else if let config = adminVM.modelsConfig {
+                        Text("\(config.models.count) 个模型 · \(adminVM.agents.count) 个代理")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text("加载管理与渠道信息")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink {
                     ToolsConfigView(client: client)

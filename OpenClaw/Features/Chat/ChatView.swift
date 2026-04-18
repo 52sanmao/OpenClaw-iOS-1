@@ -23,8 +23,7 @@ struct ChatView: View {
             inputHeader: { toolbarSectionView },
             composer: { inputSectionView }
         )
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
             navigationLeadingItem
             navigationTitleItem
@@ -60,7 +59,7 @@ struct ChatView: View {
                 Circle()
                     .fill(Color.orange)
                     .frame(width: 8, height: 8)
-                Text("代理正在对话中...")
+                Text("代理正在对话中…")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -255,7 +254,7 @@ struct ChatView: View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 TextField(
-                    "输入消息...",
+                    "输入消息…",
                     text: $inputText,
                     axis: .vertical
                 )
@@ -470,7 +469,7 @@ private struct MessageBubble: View {
                     HStack(spacing: 4) {
                         ProgressView()
                             .scaleEffect(0.7)
-                        Text("正在输入...")
+                        Text("正在输入…")
                             .font(.caption2)
                             .foregroundColor(.gray)
                     }

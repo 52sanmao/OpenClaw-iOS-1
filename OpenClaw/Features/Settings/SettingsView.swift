@@ -151,8 +151,22 @@ struct SettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle("设置")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                DetailTitleView(title: "设置") {
+                    if let active = accountStore.activeAccount {
+                        Text(active.name)
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.neutral)
+                    } else {
+                        Text("未配置账号")
+                            .font(AppTypography.micro)
+                            .foregroundStyle(AppColors.warning)
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showAddAccount) {
             AddAccountView(accountStore: accountStore)
         }

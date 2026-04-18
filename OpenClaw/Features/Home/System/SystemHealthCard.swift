@@ -66,6 +66,8 @@ struct SystemHealthCard: View {
                                 .foregroundStyle(AppColors.pillForeground)
                         }
                     }
+
+                    HomeCardDetailHint()
                 }
             } else if vm.isLoading {
                 CardLoadingView(minHeight: 90)

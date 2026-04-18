@@ -66,6 +66,8 @@ struct CronSummaryCard: View {
 
                         Spacer()
                     }
+
+                    HomeCardDetailHint()
                 }
             } else if vm.isLoading {
                 CardLoadingView(minHeight: 60)

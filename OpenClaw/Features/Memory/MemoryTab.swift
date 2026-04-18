@@ -157,17 +157,17 @@ struct MemoryTab: View {
         let skillCount = vm.skills.count
         if fileCount > 0 || skillCount > 0 {
             HStack(spacing: Spacing.xs) {
-                Text("\(fileCount) files")
+                Text("\(fileCount) 个文件")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
                 if skillCount > 0 {
-                    Text("\u{00B7} \(skillCount) skills")
+                    Text("· \(skillCount) 个技能")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                 }
             }
         } else if vm.isLoadingFiles {
-            Text("Loading\u{2026}")
+            Text("加载中…")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.neutral)
         }

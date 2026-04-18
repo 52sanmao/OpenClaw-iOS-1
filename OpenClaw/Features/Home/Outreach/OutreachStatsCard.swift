@@ -11,28 +11,32 @@ struct OutreachStatsCard: View {
             isLoading: vm.isLoading && vm.data == nil
         ) {
             if let s = vm.data {
-                Grid(horizontalSpacing: Spacing.xs + 2, verticalSpacing: Spacing.xs + 2) {
-                    GridRow {
-                        StatCell(label: "总数",    value: s.totalLeads, color: AppColors.metricPrimary)
-                        StatCell(label: "已发邮件",  value: s.emailSent,  color: AppColors.metricSecondary)
-                        StatCell(label: "WhatsApp", value: s.waSent,     color: AppColors.metricPositive)
-                    }
-                    GridRow {
-                        StatCell(label: "已回复",   value: s.replied,   color: AppColors.metricWarm)
-                        StatCell(label: "已转化", value: s.converted, color: AppColors.metricTertiary)
-                        VStack(spacing: 2) {
-                            Text(String(format: "%.1f%%", s.replyRatePct))
-                                .font(AppTypography.metricValue)
-                                .foregroundStyle(AppColors.metricHighlight)
-                            Text("回复率")
-                                .font(AppTypography.metricLabel)
-                                .foregroundStyle(AppColors.neutral)
+                VStack(spacing: Spacing.sm) {
+                    Grid(horizontalSpacing: Spacing.xs + 2, verticalSpacing: Spacing.xs + 2) {
+                        GridRow {
+                            StatCell(label: "总数",    value: s.totalLeads, color: AppColors.metricPrimary)
+                            StatCell(label: "已发邮件",  value: s.emailSent,  color: AppColors.metricSecondary)
+                            StatCell(label: "WhatsApp", value: s.waSent,     color: AppColors.metricPositive)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Spacing.xs)
-                        .background(AppColors.tintedBackground(AppColors.metricHighlight), in: RoundedRectangle(cornerRadius: AppRadius.sm))
-                        .accessibilityElement(children: .combine)
+                        GridRow {
+                            StatCell(label: "已回复",   value: s.replied,   color: AppColors.metricWarm)
+                            StatCell(label: "已转化", value: s.converted, color: AppColors.metricTertiary)
+                            VStack(spacing: 2) {
+                                Text(String(format: "%.1f%%", s.replyRatePct))
+                                    .font(AppTypography.metricValue)
+                                    .foregroundStyle(AppColors.metricHighlight)
+                                Text("回复率")
+                                    .font(AppTypography.metricLabel)
+                                    .foregroundStyle(AppColors.neutral)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.xs)
+                            .background(AppColors.tintedBackground(AppColors.metricHighlight), in: RoundedRectangle(cornerRadius: AppRadius.sm))
+                            .accessibilityElement(children: .combine)
+                        }
                     }
+
+                    HomeCardDetailHint()
                 }
             } else if vm.isLoading {
                 CardLoadingView()

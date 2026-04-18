@@ -8,7 +8,9 @@ struct CronsTab: View {
     @State private var selectedTab: CronTab = .jobs
     @State private var historyVM: CronHistoryViewModel?
     @State private var jobToRun: CronJob?
+    @State private var pendingJobToggle: PendingJobToggle?
     @State private var triggerError: Error?
+    @State private var updatingJobIDs: Set<String> = []
 
     private var jobs: [CronJob] { vm.data ?? [] }
 
@@ -70,6 +72,21 @@ struct CronsTab: View {
                 }
             }
         }
+        .alert("启停任务？", isPresented: Binding(
+            get: { pendingJobToggle != nil },
+            set: { if !$0 { pendingJobToggle = nil } }
+        )) {
+            Button(toggleConfirmationTitle, role: pendingJobToggle?.enabled == false ? .destructive : nil) {
+                guard let toggle = pendingJobToggle else { return }
+                pendingJobToggle = nil
+                Task { await setJobEnabled(toggle.job, enabled: toggle.enabled) }
+            }
+            Button("取消", role: .cancel) { pendingJobToggle = nil }
+        } message: {
+            if let toggle = pendingJobToggle {
+                Text(toggleConfirmationMessage(for: toggle))
+            }
+        }
         .alert("运行失败", isPresented: Binding(
             get: { triggerError != nil },
             set: { if !$0 { triggerError = nil } }
@@ -120,7 +137,14 @@ struct CronsTab: View {
             List {
                 Section("定时任务") {
                 ForEach(jobs) { job in
-                CronJobRow(job: job, onRun: { jobToRun = job })
+                CronJobRow(
+                    job: job,
+                    isUpdating: updatingJobIDs.contains(job.id),
+                    onToggleEnabled: { newValue in
+                        pendingJobToggle = PendingJobToggle(job: job, enabled: newValue)
+                    },
+                    onRun: { jobToRun = job }
+                )
                     .background(
                         NavigationLink("", destination: CronDetailView(
                             vm: CronDetailViewModel(
@@ -220,12 +244,45 @@ struct CronsTab: View {
             Haptics.shared.error()
         }
     }
+
+    private func setJobEnabled(_ job: CronJob, enabled: Bool) async {
+        guard !updatingJobIDs.contains(job.id) else { return }
+        updatingJobIDs.insert(job.id)
+        defer { updatingJobIDs.remove(job.id) }
+
+        do {
+            try await detailRepository.setEnabled(jobId: job.id, enabled: enabled)
+            await vm.refresh()
+            Haptics.shared.success()
+        } catch {
+            triggerError = error
+            Haptics.shared.error()
+        }
+    }
+
+    private var toggleConfirmationTitle: String {
+        pendingJobToggle?.enabled == true ? "启用" : "停用"
+    }
+
+    private func toggleConfirmationMessage(for toggle: PendingJobToggle) -> String {
+        if toggle.enabled {
+            return "这会重新启用“\(toggle.job.name)”并恢复按计划执行。"
+        }
+        return "这会停用“\(toggle.job.name)”，后续不会再按计划自动运行。"
+    }
+}
+
+private struct PendingJobToggle {
+    let job: CronJob
+    let enabled: Bool
 }
 
 // MARK: - Row
 
 struct CronJobRow: View {
     let job: CronJob
+    let isUpdating: Bool
+    var onToggleEnabled: ((Bool) -> Void)? = nil
     var onRun: (() -> Void)? = nil
 
     var body: some View {
@@ -270,16 +327,33 @@ struct CronJobRow: View {
                 }
             }
 
-            if let onRun {
-                Button {
-                    onRun()
-                } label: {
-                    Image(systemName: "play.circle.fill")
-                        .font(AppTypography.actionIcon)
-                        .foregroundStyle(AppColors.primaryAction)
+            VStack(alignment: .trailing, spacing: Spacing.sm) {
+                if let onToggleEnabled {
+                    Toggle("", isOn: Binding(
+                        get: { job.enabled },
+                        set: { onToggleEnabled($0) }
+                    ))
+                    .labelsHidden()
+                    .disabled(isUpdating)
+                    .tint(AppColors.primaryAction)
+                    .accessibilityLabel(job.enabled ? "停用 \(job.name)" : "启用 \(job.name)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("手动运行 \(job.name)")
+
+                if isUpdating {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                } else if let onRun {
+                    Button {
+                        onRun()
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(AppTypography.actionIcon)
+                            .foregroundStyle(AppColors.primaryAction)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("手动运行 \(job.name)")
+                }
             }
         }
         .padding(.vertical, Spacing.xs)
