@@ -8,6 +8,8 @@ struct HomeView: View {
     @State private var blogVM: BlogPipelineViewModel
     @State private var commandsVM: CommandsViewModel
     @State private var tokenUsageVM: TokenUsageViewModel
+    @State private var homeToolsVM: ToolsConfigViewModel
+    @State private var homeAdminVM: AdminViewModel
     @State private var showAccountSwitcher = false
     @State private var cardOrder = HomeCardOrderStore.load()
     @State private var draggingCard: HomeCardID?
@@ -19,17 +21,21 @@ struct HomeView: View {
     private let cronVM: CronSummaryViewModel
     private let client: GatewayClientProtocol
     private let cronDetailRepository: CronDetailRepository
+    private let memoryVM: MemoryViewModel
 
-    init(accountStore: AccountStore, client: GatewayClientProtocol, cronVM: CronSummaryViewModel, cronDetailRepository: CronDetailRepository) {
+    init(accountStore: AccountStore, client: GatewayClientProtocol, cronVM: CronSummaryViewModel, cronDetailRepository: CronDetailRepository, memoryVM: MemoryViewModel) {
         self.accountStore = accountStore
         self.client = client
         self.cronVM = cronVM
         self.cronDetailRepository = cronDetailRepository
+        self.memoryVM = memoryVM
         _systemVM     = State(initialValue: SystemHealthViewModel(repository: RemoteSystemHealthRepository(client: client)))
         _outreachVM   = State(initialValue: OutreachStatsViewModel(repository: RemoteOutreachRepository(client: client)))
         _blogVM       = State(initialValue: BlogPipelineViewModel(repository: RemoteBlogRepository(client: client)))
         _commandsVM   = State(initialValue: CommandsViewModel(client: client, cronRepository: RemoteCronRepository(client: client), cronDetailRepository: cronDetailRepository))
         _tokenUsageVM = State(initialValue: TokenUsageViewModel(client: client))
+        _homeToolsVM = State(initialValue: ToolsConfigViewModel(client: client))
+        _homeAdminVM = State(initialValue: AdminViewModel(client: client))
     }
 
     var body: some View {
@@ -140,9 +146,9 @@ struct HomeView: View {
                             Image(systemName: "wrench.and.screwdriver")
                         }
                         NavigationLink {
-                            SettingsView(accountStore: accountStore, client: client)
+                            SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM)
                         } label: {
-                            Image(systemName: "gear")
+                            Image(systemName: "slider.horizontal.3")
                         }
                     }
                 }
@@ -160,6 +166,15 @@ struct HomeView: View {
             outreachVM.start()
             blogVM.start()
             tokenUsageVM.start()
+            if homeAdminVM.modelsConfig == nil && !homeAdminVM.isLoading {
+                await homeAdminVM.load()
+            }
+            if homeToolsVM.config == nil && !homeToolsVM.isLoading {
+                await homeToolsVM.load()
+            }
+            if memoryVM.skills.isEmpty && !memoryVM.isLoadingSkills {
+                await memoryVM.loadSkills()
+            }
         }
         .confirmationDialog("切换账号", isPresented: $showAccountSwitcher, titleVisibility: .visible) {
             ForEach(accountStore.accounts) { account in
@@ -358,196 +373,84 @@ struct HomeView: View {
     }
 
     private var settingsModulesCard: some View {
-        NavigationLink {
-            CommandsDetailView(commandsVM: commandsVM, client: client)
-        } label: {
-            CardContainer(
-                title: "控制中心",
-                systemImage: "square.grid.2x2.fill",
-                isStale: false,
-                isLoading: false
-            ) {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    HStack(alignment: .top, spacing: Spacing.sm) {
-                        VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("更直观地进入模型、渠道、技能和扩展")
-                                .font(AppTypography.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.primary)
-                            Text("把控制台入口改成首页模块面板，直接看到重点区域和下一步去向。")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColors.neutral)
-                        }
-                        Spacer(minLength: Spacing.sm)
-                        VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                            Text("8 个模块")
-                                .font(AppTypography.captionBold)
-                                .foregroundStyle(AppColors.primaryAction)
-                            Text("可视化总览")
-                                .font(AppTypography.nano)
-                                .foregroundStyle(AppColors.neutral)
-                        }
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xs)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.primaryAction.opacity(0.08))
-                        )
-                    }
-
-                    LazyVGrid(columns: moduleGridColumns, spacing: Spacing.sm) {
-                        moduleTile(
-                            title: "模型",
-                            subtitle: "默认与回退",
-                            icon: "cpu.fill",
-                            tint: AppColors.metricPrimary,
-                            detail: commandsVM.isRunning.isEmpty ? "默认" : "执行中"
-                        )
-                        moduleTile(
-                            title: "助手",
-                            subtitle: "代理编排",
-                            icon: "person.2.fill",
-                            tint: AppColors.metricTertiary,
-                            detail: "代理面板"
-                        )
-                        moduleTile(
-                            title: "频道",
-                            subtitle: "连接状态",
-                            icon: "bubble.left.and.bubble.right.fill",
-                            tint: AppColors.success,
-                            detail: "渠道总览"
-                        )
-                        moduleTile(
-                            title: "网络",
-                            subtitle: "连接诊断",
-                            icon: "network",
-                            tint: AppColors.info,
-                            detail: "连通性"
-                        )
-                        moduleTile(
-                            title: "扩展",
-                            subtitle: "工具配置",
-                            icon: "slider.horizontal.3",
-                            tint: AppColors.metricWarm,
-                            detail: "原生工具"
-                        )
-                        moduleTile(
-                            title: "MCP 服务",
-                            subtitle: "服务器与工具",
-                            icon: "server.rack",
-                            tint: AppColors.metricSecondary,
-                            detail: "MCP"
-                        )
-                        moduleTile(
-                            title: "技能库",
-                            subtitle: "技能文件",
-                            icon: "bolt.circle.fill",
-                            tint: AppColors.metricHighlight,
-                            detail: "技能树"
-                        )
-                        moduleTile(
-                            title: "用户管理",
-                            subtitle: "账号与调试",
-                            icon: "person.crop.circle.fill",
-                            tint: AppColors.neutral,
-                            detail: "设置"
-                        )
-                    }
-
-                    HStack(spacing: Spacing.sm) {
-                        quickEntryPill(title: "命令与管理", icon: "slider.horizontal.3")
-                        quickEntryPill(title: "工具与 MCP", icon: "wrench.and.screwdriver")
-                        quickEntryPill(title: "设置", icon: "gear")
-                    }
-
-                    HomeCardDetailHint()
-                }
-            }
-        }
-        .buttonStyle(.plain)
+        ControlCenterView(modules: controlCenterModules)
     }
 
-    private var moduleGridColumns: [GridItem] {
+    private var controlCenterModules: [ControlCenterModule] {
         [
-            GridItem(.flexible(), spacing: Spacing.sm),
-            GridItem(.flexible(), spacing: Spacing.sm)
+            ControlCenterModule(
+                id: "models",
+                title: "模型",
+                subtitle: "默认与回退",
+                icon: "cpu.fill",
+                tint: AppColors.metricPrimary,
+                detail: homeAdminVM.modelsConfig?.defaultModelDisplay ?? "推理",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .inference))
+            ),
+            ControlCenterModule(
+                id: "agents",
+                title: "助手",
+                subtitle: "代理编排",
+                icon: "person.2.fill",
+                tint: AppColors.metricTertiary,
+                detail: "\(homeAdminVM.agents.count) 个代理",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .agents))
+            ),
+            ControlCenterModule(
+                id: "channels",
+                title: "频道",
+                subtitle: "连接状态",
+                icon: "bubble.left.and.bubble.right.fill",
+                tint: AppColors.success,
+                detail: "\((homeAdminVM.channelsStatus?.channels.filter { $0.isConnected }.count) ?? 0) 已连接",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .channels))
+            ),
+            ControlCenterModule(
+                id: "network",
+                title: "网络",
+                subtitle: "连接诊断",
+                icon: "network",
+                tint: AppColors.info,
+                detail: systemVM.error == nil ? "正常" : "异常",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .network))
+            ),
+            ControlCenterModule(
+                id: "extensions",
+                title: "扩展",
+                subtitle: "工具配置",
+                icon: "puzzlepiece.extension.fill",
+                tint: AppColors.metricWarm,
+                detail: homeToolsVM.config?.profile.capitalized ?? "工具",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .extensions))
+            ),
+            ControlCenterModule(
+                id: "mcp",
+                title: "MCP 服务",
+                subtitle: "服务器与工具",
+                icon: "server.rack",
+                tint: AppColors.metricSecondary,
+                detail: "\(homeToolsVM.mcpServers.count) 个服务器",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .mcp))
+            ),
+            ControlCenterModule(
+                id: "skills",
+                title: "技能库",
+                subtitle: "技能文件",
+                icon: "bolt.circle.fill",
+                tint: AppColors.metricHighlight,
+                detail: memoryVM.skills.isEmpty ? "技能树" : "\(memoryVM.skills.count) 个技能",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .skills))
+            ),
+            ControlCenterModule(
+                id: "users",
+                title: "用户管理",
+                subtitle: "账号与调试",
+                icon: "person.crop.circle.fill",
+                tint: AppColors.neutral,
+                detail: "\(accountStore.accounts.count) 个账号",
+                destination: AnyView(SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .users))
+            )
         ]
-    }
-
-    private func moduleTile(
-        title: String,
-        subtitle: String,
-        icon: String,
-        tint: Color,
-        detail: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .top) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: AppRadius.md)
-                        .fill(AppColors.tintedBackground(tint, opacity: 0.14))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: icon)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(tint)
-                }
-                Spacer(minLength: Spacing.xs)
-                Text(detail)
-                    .font(AppTypography.nano)
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, Spacing.xxs)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(AppColors.tintedBackground(tint, opacity: 0.12))
-                    )
-            }
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(AppTypography.captionBold)
-                    .foregroundStyle(.primary)
-                Text(subtitle)
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
-                    .lineLimit(2)
-            }
-
-            HStack(spacing: Spacing.xxs) {
-                Text("进入")
-                    .font(AppTypography.nano)
-                Image(systemName: "arrow.up.right")
-                    .font(AppTypography.nano)
-            }
-            .foregroundStyle(tint)
-        }
-        .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
-        .padding(Spacing.sm)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.lg)
-                .fill(Color(.systemBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.lg)
-                .strokeBorder(AppColors.tintedBackground(tint, opacity: 0.2), lineWidth: 1)
-        )
-    }
-
-    private func quickEntryPill(title: String, icon: String) -> some View {
-        HStack(spacing: Spacing.xxs) {
-            Image(systemName: icon)
-                .font(AppTypography.nano)
-            Text(title)
-                .font(AppTypography.nano)
-                .lineLimit(1)
-        }
-        .foregroundStyle(AppColors.neutral)
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, Spacing.xs)
-        .background(
-            Capsule()
-                .fill(AppColors.neutral.opacity(0.08))
-        )
     }
 }
 

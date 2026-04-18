@@ -52,13 +52,16 @@ struct MainTabView: View {
                 SessionsView(vm: sessionsVM, repository: sessionRepo, client: client)
             }
             Tab("首页", systemImage: "house.fill") {
-                HomeView(accountStore: accountStore, client: client, cronVM: cronVM, cronDetailRepository: cronDetailRepo)
+                HomeView(accountStore: accountStore, client: client, cronVM: cronVM, cronDetailRepository: cronDetailRepo, memoryVM: memoryVM)
             }
             Tab("定时任务", systemImage: "clock.arrow.2.circlepath") {
                 CronsTab(vm: cronVM, detailRepository: cronDetailRepo, client: client)
             }
             Tab("记忆与技能", systemImage: "brain") {
                 MemoryTab(vm: memoryVM)
+            }
+            Tab("设置", systemImage: "slider.horizontal.3") {
+                SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM)
             }
         }
         .overlay(alignment: .bottomTrailing) {
@@ -121,7 +124,7 @@ struct MainTabView: View {
         } detail: {
             switch selection {
             case .home:
-                HomeView(accountStore: accountStore, client: client, cronVM: cronVM, cronDetailRepository: cronDetailRepo)
+                HomeView(accountStore: accountStore, client: client, cronVM: cronVM, cronDetailRepository: cronDetailRepo, memoryVM: memoryVM)
             case .crons:
                 CronsTab(vm: cronVM, detailRepository: cronDetailRepo, client: client)
             case .memSkills:

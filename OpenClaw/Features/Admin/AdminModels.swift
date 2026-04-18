@@ -6,6 +6,15 @@ struct ModelsConfig: Sendable {
     let imageModel: String?
     let aliases: [(name: String, model: String)]
 
+    var defaultModelDisplay: String {
+        Formatters.modelShortName(defaultModel)
+    }
+
+    var fallbackModelDisplay: String {
+        guard let first = fallbacks.first, !first.isEmpty else { return "未配置" }
+        return Formatters.modelShortName(first)
+    }
+
     init(dto: ModelsStatusDTO) {
         defaultModel = dto.resolvedDefault ?? dto.defaultModel ?? "unknown"
         fallbacks = dto.fallbacks ?? []
