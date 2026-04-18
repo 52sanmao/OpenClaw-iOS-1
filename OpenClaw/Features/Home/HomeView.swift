@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HomeView: View {
+    private static let cardReorderStep: CGFloat = 148
+
     @State private var systemVM: SystemHealthViewModel
     @State private var outreachVM: OutreachStatsViewModel
     @State private var blogVM: BlogPipelineViewModel
@@ -11,6 +13,7 @@ struct HomeView: View {
     @State private var draggingCard: HomeCardID?
     @State private var isDraggingActive = false
     @State private var draggingOffset: CGFloat = 0
+    @State private var lastReorderStep = 0
 
     @Bindable private var accountStore: AccountStore
     private let cronVM: CronSummaryViewModel
@@ -44,18 +47,17 @@ struct HomeView: View {
                                         .transition(.opacity)
                                 }
                             }
-                            .scaleEffect(draggingCard == card.id && isDraggingActive ? 1.03 : 1.0)
+                            .scaleEffect(draggingCard == card.id && isDraggingActive ? 1.01 : 1.0)
                             .offset(y: draggingCard == card.id && isDraggingActive ? draggingOffset : 0)
                             .shadow(
-                                color: draggingCard == card.id && isDraggingActive ? .black.opacity(0.15) : .clear,
-                                radius: draggingCard == card.id && isDraggingActive ? 16 : 0,
+                                color: draggingCard == card.id && isDraggingActive ? .black.opacity(0.08) : .clear,
+                                radius: draggingCard == card.id && isDraggingActive ? 8 : 0,
                                 x: 0,
-                                y: draggingCard == card.id && isDraggingActive ? 8 : 0
+                                y: draggingCard == card.id && isDraggingActive ? 4 : 0
                             )
-                            .opacity(draggingCard == card.id && isDraggingActive ? 0.92 : 1.0)
                             .zIndex(draggingCard == card.id ? 1 : 0)
-                            .animation(.easeInOut(duration: 0.2), value: draggingCard)
-                            .animation(.easeInOut(duration: 0.2), value: isDraggingActive)
+                            .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.84), value: draggingCard)
+                            .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.84), value: draggingOffset)
                             .simultaneousGesture(cardDragGesture(for: card.id))
                     }
 
@@ -95,7 +97,6 @@ struct HomeView: View {
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
             }
-            .scrollDisabled(isDraggingActive)
             .refreshable {
                 async let s: Void = systemVM.refresh()
                 async let c: Void = cronVM.refresh()
@@ -236,32 +237,41 @@ struct HomeView: View {
 
     private func reorderCard(_ id: HomeCardID, translation: CGFloat) {
         guard let sourceIndex = cardOrder.firstIndex(of: id) else { return }
-        let cardStep = max(translation / 120, -1.8)
+        let step = Int((translation / Self.cardReorderStep).rounded())
+        guard step != lastReorderStep else { return }
+
         let targetIndex = min(
-            max(sourceIndex + Int(cardStep.rounded()), 0),
+            max(sourceIndex + (step - lastReorderStep), 0),
             cardOrder.count - 1
         )
-        guard targetIndex != sourceIndex else { return }
-        withAnimation(.easeInOut(duration: 0.18)) {
+        guard targetIndex != sourceIndex else {
+            lastReorderStep = step
+            return
+        }
+
+        withAnimation(.interactiveSpring(response: 0.26, dampingFraction: 0.86)) {
             let moved = cardOrder.remove(at: sourceIndex)
             cardOrder.insert(moved, at: targetIndex)
         }
+        lastReorderStep = step
     }
 
     private func cardDragGesture(for id: HomeCardID) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.4)
-            .sequenced(before: DragGesture(minimumDistance: 8, coordinateSpace: .local))
+        LongPressGesture(minimumDuration: 0.35)
+            .sequenced(before: DragGesture(minimumDistance: 10, coordinateSpace: .local))
             .onChanged { value in
                 switch value {
                 case .second(true, let drag?):
                     if draggingCard != id {
                         draggingCard = id
                         draggingOffset = 0
+                        lastReorderStep = 0
                         isDraggingActive = true
                         Haptics.shared.refreshComplete()
                     }
-                    draggingOffset = drag.translation.height
-                    reorderCard(id, translation: drag.translation.height)
+                    let translation = drag.translation.height
+                    draggingOffset = translation * 0.55
+                    reorderCard(id, translation: translation)
                 default:
                     break
                 }
@@ -269,11 +279,15 @@ struct HomeView: View {
             .onEnded { _ in
                 guard draggingCard == id else {
                     isDraggingActive = false
+                    lastReorderStep = 0
                     return
                 }
-                draggingCard = nil
-                draggingOffset = 0
-                isDraggingActive = false
+                withAnimation(.interactiveSpring(response: 0.22, dampingFraction: 0.9)) {
+                    draggingCard = nil
+                    draggingOffset = 0
+                    isDraggingActive = false
+                }
+                lastReorderStep = 0
                 HomeCardOrderStore.save(cardOrder)
                 Haptics.shared.success()
             }
@@ -348,28 +362,28 @@ struct HomeView: View {
             CommandsDetailView(commandsVM: commandsVM, client: client)
         } label: {
             CardContainer(
-                title: "命令与管理",
-                systemImage: "slider.horizontal.3",
+                title: "控制中心",
+                systemImage: "square.grid.2x2.fill",
                 isStale: false,
                 isLoading: false
             ) {
                 VStack(alignment: .leading, spacing: Spacing.md) {
                     HStack(alignment: .top, spacing: Spacing.sm) {
                         VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("直接管理模型、代理与渠道")
+                            Text("更直观地进入模型、渠道、技能和扩展")
                                 .font(AppTypography.body)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.primary)
-                            Text("把常用控制台入口做成更清晰的层级卡片，首页就能快速判断该去哪个面板。")
+                            Text("把控制台入口改成首页模块面板，直接看到重点区域和下一步去向。")
                                 .font(AppTypography.micro)
                                 .foregroundStyle(AppColors.neutral)
                         }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("3 个入口")
-                                .font(AppTypography.micro)
+                        Spacer(minLength: Spacing.sm)
+                        VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                            Text("8 个模块")
+                                .font(AppTypography.captionBold)
                                 .foregroundStyle(AppColors.primaryAction)
-                            Text("一眼直达")
+                            Text("可视化总览")
                                 .font(AppTypography.nano)
                                 .foregroundStyle(AppColors.neutral)
                         }
@@ -381,46 +395,69 @@ struct HomeView: View {
                         )
                     }
 
-                    VStack(spacing: Spacing.sm) {
-                        settingsModuleRow(
-                            title: "快捷命令",
-                            subtitle: "常用运维与诊断动作",
-                            icon: "bolt.fill",
-                            tint: AppColors.metricWarm,
-                            accent: "立即执行"
-                        )
-                        settingsModuleRow(
-                            title: "模型与代理",
-                            subtitle: "默认模型、回退策略、代理分配",
-                            icon: "cpu",
+                    LazyVGrid(columns: moduleGridColumns, spacing: Spacing.sm) {
+                        moduleTile(
+                            title: "模型",
+                            subtitle: "默认与回退",
+                            icon: "cpu.fill",
                             tint: AppColors.metricPrimary,
-                            accent: "核心配置"
+                            detail: "\(commandsVM.isExecuting ? "执行中" : "默认")"
                         )
-                        settingsModuleRow(
-                            title: "渠道与工具",
-                            subtitle: "聊天渠道、MCP 与扩展状态",
-                            icon: "bubble.left.and.bubble.right",
+                        moduleTile(
+                            title: "助手",
+                            subtitle: "代理编排",
+                            icon: "person.2.fill",
+                            tint: AppColors.metricTertiary,
+                            detail: "代理面板"
+                        )
+                        moduleTile(
+                            title: "频道",
+                            subtitle: "连接状态",
+                            icon: "bubble.left.and.bubble.right.fill",
                             tint: AppColors.success,
-                            accent: "连接状态"
+                            detail: "渠道总览"
+                        )
+                        moduleTile(
+                            title: "网络",
+                            subtitle: "连接诊断",
+                            icon: "network",
+                            tint: AppColors.info,
+                            detail: "连通性"
+                        )
+                        moduleTile(
+                            title: "扩展",
+                            subtitle: "工具配置",
+                            icon: "slider.horizontal.3",
+                            tint: AppColors.metricWarm,
+                            detail: "原生工具"
+                        )
+                        moduleTile(
+                            title: "MCP 服务",
+                            subtitle: "服务器与工具",
+                            icon: "server.rack",
+                            tint: AppColors.metricSecondary,
+                            detail: "MCP"
+                        )
+                        moduleTile(
+                            title: "技能库",
+                            subtitle: "技能文件",
+                            icon: "bolt.circle.fill",
+                            tint: AppColors.metricHighlight,
+                            detail: "技能树"
+                        )
+                        moduleTile(
+                            title: "用户管理",
+                            subtitle: "账号与调试",
+                            icon: "person.crop.circle.fill",
+                            tint: AppColors.neutral,
+                            detail: "设置"
                         )
                     }
-                    .padding(Spacing.sm)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .fill(AppColors.neutral.opacity(0.05))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppRadius.lg)
-                            .strokeBorder(AppColors.cardBorder, lineWidth: 0.5)
-                    )
 
-                    HStack(spacing: Spacing.xs) {
-                        Image(systemName: "sparkles")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppColors.primaryAction)
-                        Text("入口按“动作 / 配置 / 连接”分层，不会再挤成一团。")
-                            .font(AppTypography.micro)
-                            .foregroundStyle(AppColors.neutral)
+                    HStack(spacing: Spacing.sm) {
+                        quickEntryPill(title: "命令与管理", icon: "slider.horizontal.3")
+                        quickEntryPill(title: "工具与 MCP", icon: "wrench.and.screwdriver")
+                        quickEntryPill(title: "设置", icon: "gear")
                     }
 
                     HomeCardDetailHint()
@@ -430,63 +467,88 @@ struct HomeView: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private func settingsModuleRow(
+    private var moduleGridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: Spacing.sm),
+            GridItem(.flexible(), spacing: Spacing.sm)
+        ]
+    }
+
+    private func moduleTile(
         title: String,
         subtitle: String,
         icon: String,
         tint: Color,
-        accent: String
+        detail: String
     ) -> some View {
-        HStack(spacing: Spacing.sm) {
-            ZStack {
-                RoundedRectangle(cornerRadius: AppRadius.md)
-                    .fill(AppColors.tintedBackground(tint, opacity: 0.14))
-                    .frame(width: 40, height: 40)
-                Image(systemName: icon)
-                    .font(AppTypography.caption)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(alignment: .top) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: AppRadius.md)
+                        .fill(AppColors.tintedBackground(tint, opacity: 0.14))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: icon)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(tint)
+                }
+                Spacer(minLength: Spacing.xs)
+                Text(detail)
+                    .font(AppTypography.nano)
                     .foregroundStyle(tint)
+                    .padding(.horizontal, Spacing.xxs)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(AppColors.tintedBackground(tint, opacity: 0.12))
+                    )
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: Spacing.xs) {
-                    Text(title)
-                        .font(AppTypography.captionBold)
-                        .foregroundStyle(.primary)
-                    Text(accent)
-                        .font(AppTypography.nano)
-                        .foregroundStyle(tint)
-                        .padding(.horizontal, Spacing.xxs)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.tintedBackground(tint, opacity: 0.12))
-                        )
-                }
+                Text(title)
+                    .font(AppTypography.captionBold)
+                    .foregroundStyle(.primary)
                 Text(subtitle)
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
                     .lineLimit(2)
             }
 
-            Spacer(minLength: Spacing.xs)
-
-            Image(systemName: "arrow.up.right")
-                .font(AppTypography.micro)
-                .foregroundStyle(AppColors.neutral.opacity(0.7))
+            HStack(spacing: Spacing.xxs) {
+                Text("进入")
+                    .font(AppTypography.nano)
+                Image(systemName: "arrow.up.right")
+                    .font(AppTypography.nano)
+            }
+            .foregroundStyle(tint)
         }
-        .padding(.horizontal, Spacing.sm)
-        .padding(.vertical, Spacing.sm)
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
+        .padding(Spacing.sm)
         .background(
-            RoundedRectangle(cornerRadius: AppRadius.md)
+            RoundedRectangle(cornerRadius: AppRadius.lg)
                 .fill(Color(.systemBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: AppRadius.md)
-                .strokeBorder(tint.opacity(0.08))
+            RoundedRectangle(cornerRadius: AppRadius.lg)
+                .strokeBorder(AppColors.tintedBackground(tint, opacity: 0.2), lineWidth: 1)
         )
     }
 
+    private func quickEntryPill(title: String, icon: String) -> some View {
+        HStack(spacing: Spacing.xxs) {
+            Image(systemName: icon)
+                .font(AppTypography.nano)
+            Text(title)
+                .font(AppTypography.nano)
+                .lineLimit(1)
+        }
+        .foregroundStyle(AppColors.neutral)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.xs)
+        .background(
+            Capsule()
+                .fill(AppColors.neutral.opacity(0.08))
+        )
+    }
 }
 
 private struct HomeCardDescriptor: Identifiable {

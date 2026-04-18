@@ -35,16 +35,19 @@ final class AppLogStore: ObservableObject {
     }
 
     var exportText: String {
+        exportLines.joined(separator: "\n")
+    }
+
+    var exportLines: [String] {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "未知"
-        let header = [
+        return [
             "App: 开爪 / OpenClaw",
             "App 版本: \(version)",
             "Build: \(build)",
             "",
             "日志:",
-        ]
-        return (header + entries).joined(separator: "\n")
+        ] + entries
     }
 }
 
