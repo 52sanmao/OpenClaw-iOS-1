@@ -74,7 +74,7 @@ struct CommandsDetailView: View {
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.warning)
                     } else if let config = adminVM.modelsConfig {
-                        Text("\(config.models.count) 个模型 · \(adminVM.agents.count) 个代理")
+                        Text("默认模型 1 个 · \(adminVM.agents.count) 个代理")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
                     } else {
