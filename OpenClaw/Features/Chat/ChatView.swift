@@ -4,6 +4,7 @@ import UIKit
 
 struct ChatView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.presentationMode) private var presentationMode
     @State var vm: ChatViewModel
     @State private var inputText = ""
     @FocusState private var isInputFocused: Bool
@@ -351,20 +352,27 @@ struct ChatView: View {
         .padding(.top, 48)
     }
 
+    @ViewBuilder
     private var navigationLeadingItem: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button {
-                dismiss()
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 17, weight: .semibold))
-                    Text("返回")
-                        .font(.system(size: 17))
+        if isPresentedFromNavigationStack {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                        Text("返回")
+                            .font(.system(size: 17))
+                    }
+                    .foregroundColor(.blue)
                 }
-                .foregroundColor(.blue)
             }
         }
+    }
+
+    private var isPresentedFromNavigationStack: Bool {
+        presentationMode.wrappedValue.isPresented
     }
 
     private var navigationTitleItem: some ToolbarContent {

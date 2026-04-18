@@ -12,13 +12,25 @@ final class SessionsViewModel {
 
     var chatSessions: [SessionEntry] {
         sessions
-            .filter { if case .subagent = $0.kind { return false } else { return true } }
+            .filter { session in
+                switch session.kind {
+                case .main:
+                    return true
+                case .cron:
+                    // Only show persistent cron sessions in chat history, not run instances
+                    return false
+                case .subagent:
+                    return false
+                }
+            }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
     var subagents: [SessionEntry] {
         sessions
-            .filter { if case .subagent = $0.kind { return true } else { return false } }
+            .filter { session in
+                if case .subagent = session.kind { return true } else { return false }
+            }
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 

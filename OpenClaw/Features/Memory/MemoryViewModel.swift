@@ -159,10 +159,14 @@ final class MemoryViewModel {
         comments.filter { $0.paragraphId == id }
     }
 
-    func clearComments() {
-        comments.removeAll()
+    func clearSubmitState() {
         submitResult = nil
         submitError = nil
+    }
+
+    func clearComments() {
+        comments.removeAll()
+        clearSubmitState()
     }
 
     // MARK: - Page Comment
@@ -235,10 +239,35 @@ final class MemoryViewModel {
 
     // MARK: - Submit Edits
 
+    func submitDraftEdits(for file: MemoryFile, text: String) async {
+        isSubmitting = true
+        submitError = nil
+        submitResult = nil
+
+        let prompt = PromptTemplates.saveMemoryFile(
+            path: file.path,
+            updatedText: text
+        )
+
+        let request = ChatCompletionRequest(system: prompt.system, user: prompt.user)
+
+        do {
+            let response = try await client.chatCompletion(request)
+            fileContent = MemoryFileContent(path: file.path, text: text)
+            submitResult = response.text ?? "代理未返回内容。"
+            Haptics.shared.success()
+        } catch {
+            submitError = error
+            Haptics.shared.error()
+        }
+        isSubmitting = false
+    }
+
     func submitEdits(for file: MemoryFile) async {
         guard let content = fileContent else { return }
         isSubmitting = true
         submitError = nil
+        submitResult = nil
 
         let prompt = PromptTemplates.editMemoryFile(
             path: file.path,
@@ -258,6 +287,7 @@ final class MemoryViewModel {
         }
         isSubmitting = false
     }
+
 }
 
 enum MemoryError: LocalizedError {

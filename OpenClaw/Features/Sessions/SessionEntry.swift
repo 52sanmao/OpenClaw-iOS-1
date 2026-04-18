@@ -88,11 +88,22 @@ struct SessionEntry: Sendable, Identifiable {
 
         if id == SessionKeys.main {
             kind = .main
-        } else if id.hasPrefix(SessionKeys.cronPrefix) && !id.contains(":run:") {
-            let jobId = String(id.dropFirst(SessionKeys.cronPrefix.count))
+        } else if id.hasPrefix(SessionKeys.cronPrefix) {
+            let jobId: String
+            if id.contains(":run:") {
+                // Cron run session like "agent:orchestrator:cron:jobId:run:uuid"
+                let withoutPrefix = String(id.dropFirst(SessionKeys.cronPrefix.count))
+                jobId = String(withoutPrefix.split(separator: ":").first ?? "")
+            } else {
+                // Persistent cron session like "agent:orchestrator:cron:jobId"
+                jobId = String(id.dropFirst(SessionKeys.cronPrefix.count))
+            }
             kind = .cron(jobId: jobId)
-        } else {
+        } else if id.hasPrefix(SessionKeys.subagentPrefix) {
             kind = .subagent
+        } else {
+            // Fallback: threads that don't match any known prefix are treated as chat sessions
+            kind = .main
         }
     }
 }

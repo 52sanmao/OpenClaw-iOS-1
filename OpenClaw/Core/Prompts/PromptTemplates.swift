@@ -62,8 +62,43 @@ enum PromptTemplates {
         return (system: system, user: user)
     }
 
-    /// Build a prompt for a skill-level instruction.
-    /// The agent reads the SKILL.md first to understand the skill before acting.
+    /// Build a prompt for saving a directly edited memory file.
+    static func saveMemoryFile(
+        path: String,
+        updatedText: String
+    ) -> (system: String, user: String) {
+
+        let system = """
+        You have a task: save a workspace markdown file using the user's exact edited text.
+        The workspace root is: \(AppConstants.workspaceRoot)
+
+        Steps:
+        1. Read the file at the given path using the read tool
+        2. Write the UPDATED_TEXT block exactly as provided to the same path using the write tool
+        3. Reply with a 2-3 bullet summary confirming the save
+
+        Rules:
+        - Treat the UPDATED_TEXT block as the exact final file contents
+        - Do not paraphrase, reformat, clean up, or merge content from the previous file
+        - Preserve blank lines, markdown structure, punctuation, and spacing exactly as provided
+        - You MUST read before write
+        """
+
+        let lineCount = updatedText.components(separatedBy: "\n").count
+        let user = """
+        File: `\(path)`
+        Updated line count: \(lineCount)
+
+        Write this exact content to the file:
+
+        <UPDATED_TEXT>
+        \(updatedText)
+        </UPDATED_TEXT>
+        """
+
+        return (system: system, user: user)
+    }
+
     static func skillComment(
         skillId: String,
         skillName: String,
