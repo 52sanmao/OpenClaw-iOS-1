@@ -126,6 +126,53 @@ struct ExtensionInfoDTO: Decodable, Sendable {
     let activationStatus: String?
     let activationError: String?
     let version: String?
+    let onboardingState: String?
+    let onboarding: ExtensionOnboardingDTO?
+}
+
+// Onboarding copy for channel-like extensions (Telegram, Discord, etc.)
+struct ExtensionOnboardingDTO: Decodable, Sendable {
+    let requiresPairing: Bool?
+    let credentialTitle: String?
+    let credentialInstructions: String?
+    let credentialNextStep: String?
+    let setupUrl: String?
+    let pairingTitle: String?
+    let pairingInstructions: String?
+}
+
+// MARK: - /api/extensions/{name}/setup  (GET + POST)
+
+struct ExtensionSetupResponseDTO: Decodable, Sendable {
+    let secrets: [ExtensionSecretFieldDTO]?
+    let onboarding: ExtensionOnboardingDTO?
+    let success: Bool?
+    let message: String?
+    let onboardingState: String?
+    let authUrl: String?
+}
+
+struct ExtensionSecretFieldDTO: Decodable, Sendable {
+    let name: String
+    let label: String?
+    let description: String?
+    let type: String?           // "password" | "text" (default text)
+    let placeholder: String?
+    let required: Bool?
+}
+
+struct ExtensionSetupRequest: Encodable, Sendable {
+    let secrets: [String: String]
+    let fields: [String: String]
+}
+
+// MARK: - /api/extensions/{name}/activate
+
+struct ExtensionActivateResponseDTO: Decodable, Sendable {
+    let success: Bool?
+    let message: String?
+    let authUrl: String?
+    let awaitingToken: Bool?
 }
 
 // MARK: - /api/extensions/registry (available to install)
@@ -230,12 +277,131 @@ struct AdminUserDTO: Decodable, Sendable, Identifiable {
 
 struct AdminUserCreateRequest: Encodable, Sendable {
     let displayName: String
+    let email: String?
     let role: String
 
     enum CodingKeys: String, CodingKey {
         case displayName = "display_name"
+        case email
         case role
     }
+}
+
+struct AdminUserPatchRequest: Encodable, Sendable {
+    let role: String?
+    let status: String?
+    let displayName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case role
+        case status
+        case displayName = "display_name"
+    }
+}
+
+// MARK: - /api/admin/usage  (aggregate usage)
+
+struct AdminUsageResponseDTO: Decodable, Sendable {
+    let usage: [AdminUsageEntryDTO]?
+}
+
+struct AdminUsageEntryDTO: Decodable, Sendable {
+    let userId: String?
+    let model: String
+    let callCount: Int?
+    let inputTokens: Int?
+    let outputTokens: Int?
+    let totalCost: String?
+}
+
+struct AdminUsageSummaryDTO: Decodable, Sendable {
+    let users: UserCounts?
+    let jobs: JobCounts?
+    let usage30d: UsageTotals?
+    let uptimeSeconds: Int?
+
+    struct UserCounts: Decodable, Sendable {
+        let total: Int?
+        let active: Int?
+        let suspended: Int?
+        let admins: Int?
+    }
+    struct JobCounts: Decodable, Sendable {
+        let total: Int?
+    }
+    struct UsageTotals: Decodable, Sendable {
+        let llmCalls: Int?
+        let totalCost: String?
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case users
+        case jobs
+        case usage30d = "usage_30d"
+        case uptimeSeconds = "uptime_seconds"
+    }
+}
+
+// MARK: - /api/tokens  (admin-issued tokens)
+
+struct CreateTokenRequest: Encodable, Sendable {
+    let name: String
+    let userId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case userId = "user_id"
+    }
+}
+
+struct CreateTokenResponse: Decodable, Sendable {
+    let token: String?
+    let plaintextToken: String?
+    var effectiveToken: String? { token ?? plaintextToken }
+}
+
+// MARK: - /api/settings/{key}  (PUT/DELETE)
+
+struct SettingsValuePayload<V: Encodable & Sendable>: Encodable, Sendable {
+    let value: V
+}
+
+// LLM builtin override object (vaulted per-provider override).
+struct LLMBuiltinOverrideDTO: Codable, Sendable {
+    var apiKey: String?
+    var model: String?
+    var baseUrl: String?
+
+    enum CodingKeys: String, CodingKey {
+        case apiKey = "api_key"
+        case model
+        case baseUrl = "base_url"
+    }
+}
+
+struct LLMCustomProviderDTO: Codable, Sendable, Identifiable {
+    let id: String
+    let name: String
+    let adapter: String
+    let baseUrl: String?
+    let defaultModel: String?
+    let apiKey: String?
+    let builtin: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case adapter
+        case baseUrl = "base_url"
+        case defaultModel = "default_model"
+        case apiKey = "api_key"
+        case builtin
+    }
+}
+
+// Sentinel that tells the backend "keep the existing encrypted key".
+enum LLMKeySentinel {
+    static let unchanged = "\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}\u{2022}"
 }
 
 // MARK: - /api/settings/export  (everything in one blob)

@@ -242,11 +242,131 @@ final class AdminViewModel {
         await load()
     }
 
-    func createUser(displayName: String, role: String) async throws {
-        let body = AdminUserCreateRequest(displayName: displayName, role: role)
-        let _: AdminUserDTO = try await client.statsPost("api/admin/users", body: body)
+    func activateExtension(name: String) async throws -> ExtensionActivateResponseDTO {
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        let res: ExtensionActivateResponseDTO = try await client.statsPost(
+            "api/extensions/\(encoded)/activate", body: EmptyBody()
+        )
+        await load()
+        return res
+    }
+
+    func loadExtensionSetup(name: String) async throws -> ExtensionSetupResponseDTO {
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        return try await client.stats("api/extensions/\(encoded)/setup")
+    }
+
+    func submitExtensionSetup(name: String, secrets: [String: String]) async throws -> ExtensionSetupResponseDTO {
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        let body = ExtensionSetupRequest(secrets: secrets, fields: [:])
+        let res: ExtensionSetupResponseDTO = try await client.statsPost("api/extensions/\(encoded)/setup", body: body)
+        await load()
+        return res
+    }
+
+    // MARK: - Admin users
+
+    @discardableResult
+    func createUser(displayName: String, email: String?, role: String) async throws -> CreateTokenResponse? {
+        let body = AdminUserCreateRequest(
+            displayName: displayName,
+            email: (email?.isEmpty == false) ? email : nil,
+            role: role
+        )
+        let response: CreateTokenResponse = try await client.statsPost("api/admin/users", body: body)
+        await load()
+        return response.effectiveToken != nil ? response : nil
+    }
+
+    func suspendUser(id: String) async throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        try await client.statsPostVoid("api/admin/users/\(encoded)/suspend")
         await load()
     }
+
+    func activateUser(id: String) async throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        try await client.statsPostVoid("api/admin/users/\(encoded)/activate")
+        await load()
+    }
+
+    func setUserRole(id: String, role: String) async throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        let _: AdminUserDTO = try await client.statsPatch(
+            "api/admin/users/\(encoded)", body: AdminUserPatchRequest(role: role, status: nil, displayName: nil)
+        )
+        await load()
+    }
+
+    func deleteUser(id: String) async throws {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        try await client.statsDeleteVoid("api/admin/users/\(encoded)")
+        await load()
+    }
+
+    func createToken(userId: String, name: String) async throws -> String? {
+        let body = CreateTokenRequest(name: name, userId: userId)
+        let res: CreateTokenResponse = try await client.statsPost("api/tokens", body: body)
+        return res.effectiveToken
+    }
+
+    func loadUserDetail(id: String) async throws -> AdminUserDTO {
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id
+        return try await client.stats("api/admin/users/\(encoded)")
+    }
+
+    func loadUserUsage(userId: String, period: String = "month") async throws -> AdminUsageResponseDTO {
+        let encodedUser = userId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? userId
+        return try await client.stats("api/admin/usage?user_id=\(encodedUser)&period=\(period)")
+    }
+
+    func loadAggregateUsage(period: String) async throws -> AdminUsageResponseDTO {
+        return try await client.stats("api/admin/usage?period=\(period)")
+    }
+
+    func loadAdminSummary() async throws -> AdminUsageSummaryDTO {
+        return try await client.stats("api/admin/usage/summary")
+    }
+
+    // MARK: - LLM backend / model settings
+
+    func setActiveLLMBackend(id: String) async throws {
+        try await client.statsPutVoid(
+            "api/settings/llm_backend",
+            body: SettingsValuePayload(value: id)
+        )
+        selectedBackendId = id
+    }
+
+    func setSelectedModel(_ model: String?) async throws {
+        if let model {
+            try await client.statsPutVoid(
+                "api/settings/selected_model",
+                body: SettingsValuePayload(value: model)
+            )
+        } else {
+            try await client.statsDeleteVoid("api/settings/selected_model")
+        }
+        selectedModel = model
+    }
+
+    func saveCustomProviders(_ providers: [LLMCustomProviderDTO]) async throws {
+        try await client.statsPutVoid(
+            "api/settings/llm_custom_providers",
+            body: SettingsValuePayload(value: providers)
+        )
+        await load()
+    }
+
+    func saveBuiltinOverrides(_ overrides: [String: LLMBuiltinOverrideDTO]) async throws {
+        try await client.statsPutVoid(
+            "api/settings/llm_builtin_overrides",
+            body: SettingsValuePayload(value: overrides)
+        )
+        await load()
+    }
+
+    // MARK: - Existing
 
     func loadPairing(channel: String) async throws -> PairingResponseDTO {
         let encoded = channel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? channel

@@ -423,7 +423,7 @@ struct UsersConsoleView: View {
         isCreating = true
         defer { isCreating = false }
         do {
-            try await adminVM.createUser(displayName: name, role: newRole)
+            try await adminVM.createUser(displayName: name, email: nil, role: newRole)
             newName = ""
             newRole = "member"
             showCreateUser = false

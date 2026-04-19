@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// 频道控制台 — 对齐 Web UI：已安装的 wasm_channel / channel_relay 列表（显示激活/鉴权状态），
 /// 可从注册表安装，可移除；不再混入推理 provider 信息。
@@ -11,6 +12,9 @@ struct ChannelsConsoleView: View {
     @State private var showInstall = false
     @State private var pairingFor: PairingSheetState?
     @State private var pairingLoading = false
+    @State private var setupForExtension: String?
+    @State private var setupForDisplayName: String = ""
+    @State private var activatingName: String?
 
     private let columns = [
         GridItem(.flexible(), spacing: Spacing.sm),
@@ -81,6 +85,18 @@ struct ChannelsConsoleView: View {
         }
         .sheet(item: $pairingFor) { state in
             PairingSheet(state: state) { pairingFor = nil }
+        }
+        .sheet(isPresented: Binding(
+            get: { setupForExtension != nil },
+            set: { if !$0 { setupForExtension = nil } }
+        )) {
+            if let name = setupForExtension {
+                ExtensionSetupSheet(
+                    extensionName: name,
+                    displayName: setupForDisplayName,
+                    adminVM: adminVM
+                ) { setupForExtension = nil }
+            }
         }
     }
 
@@ -160,110 +176,189 @@ struct ChannelsConsoleView: View {
 
     @ViewBuilder
     private func channelRow(_ ext: ExtensionInfoDTO) -> some View {
-        let isActive = ext.activationStatus?.lowercased() == "active" || (ext.active && ext.authenticated)
-        let tint: Color = isActive ? AppColors.success : AppColors.warning
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            HStack(spacing: Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(tint.opacity(0.14))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: channelIcon(ext.name))
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(tint)
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: Spacing.xxs) {
-                        Text(ext.displayName ?? ext.name.capitalized)
-                            .font(AppTypography.body)
-                            .fontWeight(.medium)
-                        if let v = ext.version {
-                            Text("v\(v)")
-                                .font(AppTypography.nano)
-                                .foregroundStyle(AppColors.neutral)
-                        }
-                    }
-                    Text(statusText(ext))
-                        .font(AppTypography.nano)
-                        .foregroundStyle(tint)
-                }
-                Spacer()
-                statusBadge(isActive: isActive, authenticated: ext.authenticated)
+        let state = (ext.onboardingState ?? ext.activationStatus ?? "installed").lowercased()
+        let isActive = state == "active" || state == "ready"
+        let cardTint: Color = {
+            if isActive { return AppColors.success }
+            if state == "failed" { return AppColors.danger }
+            if state == "pairing" || state == "pairing_required" { return AppColors.metricTertiary }
+            return AppColors.info
+        }()
+
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            header(ext: ext, tint: cardTint)
+
+            if ext.kind.lowercased() == "wasm_channel" {
+                ChannelStepper(
+                    status: state,
+                    requiresPairing: ext.onboarding?.requiresPairing ?? false
+                )
+                .padding(.vertical, 4)
             }
 
-            if let err = ext.activationError, !err.isEmpty {
-                Text(err)
+            if let desc = ext.description, !desc.isEmpty {
+                Text(desc)
                     .font(AppTypography.nano)
-                    .foregroundStyle(AppColors.danger)
+                    .foregroundStyle(AppColors.neutral)
                     .lineLimit(2)
             }
 
-            HStack(spacing: Spacing.xs) {
-                Button {
-                    Task { await loadPairing(ext) }
-                } label: {
-                    HStack(spacing: Spacing.xxs) {
-                        if pairingLoading && pairingFor == nil {
-                            ProgressView().scaleEffect(0.7)
-                        } else {
-                            Image(systemName: "qrcode")
-                                .font(AppTypography.nano)
-                        }
-                        Text("查看配对")
-                            .font(AppTypography.nano)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundStyle(AppColors.info)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(AppColors.info.opacity(0.12)))
+            if let err = ext.activationError, !err.isEmpty {
+                HStack(spacing: Spacing.xxs) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(AppColors.danger)
+                    Text(err)
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.danger)
+                        .lineLimit(3)
                 }
-                .buttonStyle(.plain)
-
-                Button(role: .destructive) {
-                    Task { await removeChannel(ext.name) }
-                } label: {
-                    HStack(spacing: Spacing.xxs) {
-                        if removingName == ext.name {
-                            ProgressView().scaleEffect(0.7)
-                        } else {
-                            Image(systemName: "trash")
-                                .font(AppTypography.nano)
-                        }
-                        Text(removingName == ext.name ? "移除中…" : "移除")
-                            .font(AppTypography.nano)
-                            .fontWeight(.semibold)
-                    }
-                    .foregroundStyle(AppColors.danger)
-                    .padding(.horizontal, Spacing.sm)
-                    .padding(.vertical, 6)
-                    .background(Capsule().fill(AppColors.danger.opacity(0.12)))
-                }
-                .buttonStyle(.plain)
-                .disabled(removingName == ext.name)
-                Spacer()
             }
+
+            actionsRow(ext: ext, state: state)
         }
         .padding(Spacing.sm)
         .background(
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .fill(Color(.systemGroupedBackground))
         )
-    }
-
-    private func statusText(_ ext: ExtensionInfoDTO) -> String {
-        if ext.activationStatus?.lowercased() == "active" { return "Active · 已认证" }
-        if ext.authenticated { return "已认证，未激活" }
-        if ext.needsSetup == true { return "需要配置" }
-        return "已安装"
+        .overlay(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .strokeBorder(cardTint.opacity(0.18), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
-    private func statusBadge(isActive: Bool, authenticated: Bool) -> some View {
+    private func header(ext: ExtensionInfoDTO, tint: Color) -> some View {
+        HStack(spacing: Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.14))
+                    .frame(width: 40, height: 40)
+                Image(systemName: channelIcon(ext.name))
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(tint)
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: Spacing.xxs) {
+                    Text(ext.displayName ?? ext.name.capitalized)
+                        .font(AppTypography.body)
+                        .fontWeight(.medium)
+                    if let v = ext.version {
+                        Text("v\(v)")
+                            .font(AppTypography.nano)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+                Text(statusText(ext))
+                    .font(AppTypography.nano)
+                    .foregroundStyle(tint)
+            }
+            Spacer()
+            statusChip(ext: ext)
+        }
+    }
+
+    @ViewBuilder
+    private func actionsRow(ext: ExtensionInfoDTO, state: String) -> some View {
+        let kind = ext.kind.lowercased()
+        let isChannel = kind == "wasm_channel"
+        let isRelay = kind == "channel_relay"
+        let isMcp = kind == "mcp_server"
+        let needsActivate = (isRelay || isMcp) && !ext.active
+
+        FlowChipsLayout(spacing: Spacing.xs) {
+            actionChip(
+                icon: ext.authenticated ? "gear.badge" : "gear",
+                label: ext.authenticated ? "重新配置" : "配置",
+                tint: AppColors.primaryAction
+            ) {
+                setupForDisplayName = ext.displayName ?? ext.name.capitalized
+                setupForExtension = ext.name
+            }
+
+            if needsActivate {
+                actionChip(
+                    icon: "bolt.fill",
+                    label: activatingName == ext.name ? "激活中…" : "激活",
+                    tint: AppColors.metricTertiary,
+                    isLoading: activatingName == ext.name
+                ) {
+                    Task { await activate(ext) }
+                }
+            }
+
+            if isChannel {
+                actionChip(
+                    icon: "qrcode",
+                    label: "配对请求",
+                    tint: AppColors.info
+                ) {
+                    Task { await loadPairing(ext) }
+                }
+            }
+
+            actionChip(
+                icon: "trash",
+                label: removingName == ext.name ? "移除中…" : "移除",
+                tint: AppColors.danger,
+                isLoading: removingName == ext.name,
+                role: .destructive
+            ) {
+                Task { await removeChannel(ext.name) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func actionChip(icon: String, label: String, tint: Color, isLoading: Bool = false, role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
+        Button(role: role, action: action) {
+            HStack(spacing: Spacing.xxs) {
+                if isLoading {
+                    ProgressView().scaleEffect(0.7)
+                } else {
+                    Image(systemName: icon)
+                        .font(AppTypography.nano)
+                }
+                Text(label)
+                    .font(AppTypography.nano)
+                    .fontWeight(.semibold)
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, Spacing.sm)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(tint.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+    }
+
+    private func statusText(_ ext: ExtensionInfoDTO) -> String {
+        let s = (ext.onboardingState ?? ext.activationStatus ?? "installed").lowercased()
+        switch s {
+        case "active", "ready":             return "Active · 已就绪"
+        case "failed":                      return "激活失败"
+        case "pairing", "pairing_required": return "待配对"
+        case "configured":                  return "已配置，待激活"
+        case "setup_required":              return "需要配置凭据"
+        case "activation_in_progress":      return "激活中…"
+        default:                            return ext.authenticated ? "已认证" : "已安装"
+        }
+    }
+
+    @ViewBuilder
+    private func statusChip(ext: ExtensionInfoDTO) -> some View {
+        let s = (ext.onboardingState ?? ext.activationStatus ?? "installed").lowercased()
         let (text, color): (String, Color) = {
-            if isActive { return ("Active", AppColors.success) }
-            if authenticated { return ("Configured", AppColors.info) }
-            return ("Installed", AppColors.warning)
+            switch s {
+            case "active", "ready":               return ("Active", AppColors.success)
+            case "failed":                        return ("Failed", AppColors.danger)
+            case "pairing", "pairing_required":   return ("Pairing", AppColors.metricTertiary)
+            case "configured":                    return ("Configured", AppColors.info)
+            case "setup_required":                return ("Setup", AppColors.warning)
+            case "activation_in_progress":        return ("Starting", AppColors.metricPrimary)
+            default:
+                return ext.authenticated ? ("Configured", AppColors.info) : ("Installed", AppColors.warning)
+            }
         }()
         Text(text)
             .font(AppTypography.nano)
@@ -381,6 +476,26 @@ struct ChannelsConsoleView: View {
         do {
             try await adminVM.installExtension(name: entry.name, kind: entry.kind)
             Haptics.shared.success()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.shared.error()
+        }
+    }
+
+    private func activate(_ ext: ExtensionInfoDTO) async {
+        activatingName = ext.name
+        defer { activatingName = nil }
+        do {
+            let res = try await adminVM.activateExtension(name: ext.name)
+            if let url = res.authUrl, let openUrl = URL(string: url) {
+                await UIApplication.shared.open(openUrl)
+            }
+            if res.success == false {
+                actionError = res.message ?? "激活失败"
+                Haptics.shared.error()
+            } else {
+                Haptics.shared.success()
+            }
         } catch {
             actionError = error.localizedDescription
             Haptics.shared.error()
