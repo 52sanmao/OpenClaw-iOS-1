@@ -1,16 +1,16 @@
 import SwiftUI
 
-/// 记忆管理视图 — 展示和管理上下文记忆
+/// 记忆管理视图 — 展示和管理上下文记忆文件
 struct MemoryListView: View {
     @Bindable var vm: MemoryViewModel
 
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.md) {
-                if vm.isLoadingMemories {
+                if vm.isLoadingFiles {
                     ProgressView("加载记忆中…")
                         .padding(.top, Spacing.xl)
-                } else if vm.memories.isEmpty {
+                } else if vm.files.isEmpty {
                     ContentUnavailableView(
                         "暂无记忆",
                         systemImage: "brain.head.profile",
@@ -28,19 +28,19 @@ struct MemoryListView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 DetailTitleView(title: "记忆") {
-                    Text("\(vm.memories.count) 条记忆")
+                    Text("\(vm.files.count) 个文件")
                         .font(AppTypography.micro)
                         .foregroundStyle(AppColors.neutral)
                 }
             }
         }
         .refreshable {
-            await vm.loadMemories()
+            await vm.loadFiles()
             Haptics.shared.refreshComplete()
         }
         .task {
-            if vm.memories.isEmpty && !vm.isLoadingMemories {
-                await vm.loadMemories()
+            if vm.files.isEmpty && !vm.isLoadingFiles {
+                await vm.loadFiles()
             }
         }
     }
@@ -51,17 +51,22 @@ struct MemoryListView: View {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "brain.head.profile")
                     .foregroundStyle(AppColors.info)
-                Text("上下文记忆")
+                Text("记忆文件")
                     .font(AppTypography.captionBold)
                 Spacer()
-                Text("\(vm.memories.count) 条")
+                Text("\(vm.files.count) 个")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
             }
 
             VStack(spacing: Spacing.xs) {
-                ForEach(vm.memories) { memory in
-                    memoryRow(memory)
+                ForEach(vm.files) { file in
+                    NavigationLink {
+                        MemoryFileView(vm: vm, file: file)
+                    } label: {
+                        memoryRow(file)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -74,34 +79,28 @@ struct MemoryListView: View {
     }
 
     @ViewBuilder
-    private func memoryRow(_ memory: Memory) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            HStack(spacing: Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill(memoryTypeTint(memory.type).opacity(0.14))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: memoryTypeIcon(memory.type))
-                        .foregroundStyle(memoryTypeTint(memory.type))
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(memory.name)
-                        .font(AppTypography.body)
-                        .fontWeight(.medium)
-                        .lineLimit(1)
-                    Text(memory.type.capitalized)
-                        .font(AppTypography.nano)
-                        .foregroundStyle(AppColors.neutral)
-                }
-                Spacer()
+    private func memoryRow(_ file: MemoryFile) -> some View {
+        HStack(spacing: Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill(memoryTypeTint(file.type).opacity(0.14))
+                    .frame(width: 36, height: 36)
+                Image(systemName: memoryTypeIcon(file.type))
+                    .foregroundStyle(memoryTypeTint(file.type))
             }
-
-            if let desc = memory.description, !desc.isEmpty {
-                Text(desc)
-                    .font(AppTypography.caption)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.name)
+                    .font(AppTypography.body)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                Text(file.type.capitalized)
+                    .font(AppTypography.nano)
                     .foregroundStyle(AppColors.neutral)
-                    .lineLimit(3)
             }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(AppTypography.nano)
+                .foregroundStyle(AppColors.neutral)
         }
         .padding(Spacing.sm)
         .background(
