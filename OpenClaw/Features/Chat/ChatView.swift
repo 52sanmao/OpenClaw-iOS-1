@@ -232,14 +232,6 @@ struct ChatView: View {
     private var toolbarSectionView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                if let memoryVM {
-                    NavigationLink {
-                        SkillsListView(vm: memoryVM)
-                    } label: {
-                        chatQuickPill(icon: "puzzlepiece.fill", label: "技能")
-                    }
-                    .buttonStyle(.plain)
-                }
                 NavigationLink {
                     TokenDetailView(vm: TokenUsageViewModel(client: client), detailRepository: cronDetailRepository ?? RemoteCronDetailRepository(client: client))
                 } label: {

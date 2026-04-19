@@ -327,7 +327,7 @@ struct HomeView: View {
             ControlCenterSection(
                 id: "intelligence",
                 title: "智能",
-                subtitle: "推理 · 代理",
+                subtitle: "推理",
                 icon: "cpu.fill",
                 tint: AppColors.metricPrimary,
                 modules: [
@@ -339,22 +339,13 @@ struct HomeView: View {
                         tint: AppColors.metricPrimary,
                         detail: homeAdminVM.selectedModel ?? homeAdminVM.modelsConfig?.defaultModelDisplay ?? "模型",
                         destination: AnyView(InferenceConsoleView(adminVM: homeAdminVM))
-                    ),
-                    ControlCenterModule(
-                        id: "agents",
-                        title: "代理",
-                        subtitle: "身份与行为",
-                        icon: "person.2.fill",
-                        tint: AppColors.metricTertiary,
-                        detail: homeAdminVM.agent?.displayName ?? "代理",
-                        destination: AnyView(AgentsConsoleView(adminVM: homeAdminVM))
                     )
                 ]
             ),
             ControlCenterSection(
                 id: "automation",
                 title: "自动化",
-                subtitle: "任务 · 定时任务 · 技能",
+                subtitle: "任务 · 定时任务",
                 icon: "clock.arrow.2.circlepath",
                 tint: AppColors.metricSecondary,
                 modules: [
@@ -375,13 +366,31 @@ struct HomeView: View {
                         tint: AppColors.metricSecondary,
                         detail: cronModuleDetail,
                         destination: AnyView(CronsTab(vm: cronVM, detailRepository: cronDetailRepository, client: client))
+                    )
+                ]
+            ),
+            ControlCenterSection(
+                id: "knowledge",
+                title: "知识库",
+                subtitle: "记忆 · 技能",
+                icon: "brain.head.profile",
+                tint: AppColors.info,
+                modules: [
+                    ControlCenterModule(
+                        id: "memory",
+                        title: "记忆",
+                        subtitle: "上下文记忆",
+                        icon: "brain.head.profile",
+                        tint: AppColors.info,
+                        detail: "记忆管理",
+                        destination: AnyView(MemoryListView(vm: memoryVM))
                     ),
                     ControlCenterModule(
                         id: "skills",
-                        title: "技能库",
+                        title: "技能",
                         subtitle: "技能文件",
                         icon: "bolt.circle.fill",
-                        tint: AppColors.info,
+                        tint: AppColors.metricTertiary,
                         detail: memoryVM.skills.isEmpty ? "技能树" : "\(memoryVM.skills.count) 个技能",
                         destination: AnyView(SkillsListView(vm: memoryVM))
                     )
