@@ -262,7 +262,7 @@ struct SettingsConsoleView: View {
 
     private var agentSection: some View {
         Group {
-            Section("当前代理") {
+            Section {
                 NavigationLink {
                     AgentSettingsView(adminVM: adminVM)
                 } label: {
@@ -273,10 +273,12 @@ struct SettingsConsoleView: View {
                         tint: AppColors.metricTertiary
                     )
                 }
+            } header: {
+                Text("当前代理")
             }
 
             if let agent = adminVM.agent {
-                Section("代理设置项") {
+                Section {
                     inlineSettingRow(
                         title: "使用规划",
                         subtitle: "agent.use_planning",
@@ -298,6 +300,8 @@ struct SettingsConsoleView: View {
                         tint: agent.allowLocalTools ? AppColors.success : AppColors.neutral,
                         value: agent.allowLocalTools ? "启用" : "禁用"
                     )
+                } header: {
+                    Text("代理设置项")
                 } footer: {
                     Text("这三项就是当前网关已暴露到 iOS 端的代理核心设置。更完整的代理信息（激活频道、模型、角色）可进入详情页查看。")
                 }
@@ -307,7 +311,7 @@ struct SettingsConsoleView: View {
 
     private var usersSection: some View {
         Group {
-            Section("本地网关账户") {
+            Section {
                 if let active = accountStore.activeAccount {
                     HStack(spacing: Spacing.sm) {
                         ZStack {
@@ -348,6 +352,8 @@ struct SettingsConsoleView: View {
                         tint: AppColors.success
                     )
                 }
+            } header: {
+                Text("本地网关账户")
             } footer: {
                 Text("这里管理的是本机保存的网关连接账户，不是远程 IronClaw 的用户列表。")
             }
