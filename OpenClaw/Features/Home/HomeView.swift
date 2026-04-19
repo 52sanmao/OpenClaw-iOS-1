@@ -4,12 +4,14 @@ struct HomeView: View {
     private static let cardReorderStep: CGFloat = 148
 
     @State private var systemVM: SystemHealthViewModel
+    @State private var gatewayStatusVM: GatewayStatusViewModel
     @State private var outreachVM: OutreachStatsViewModel
     @State private var blogVM: BlogPipelineViewModel
     @State private var commandsVM: CommandsViewModel
     @State private var tokenUsageVM: TokenUsageViewModel
     @State private var homeToolsVM: ToolsConfigViewModel
     @State private var homeAdminVM: AdminViewModel
+    @State private var jobsVM: JobsViewModel
     @State private var showAccountSwitcher = false
     @State private var cardOrder = HomeCardOrderStore.load()
     @State private var draggingCard: HomeCardID?
@@ -31,12 +33,14 @@ struct HomeView: View {
         self.cronDetailRepository = cronDetailRepository
         self.memoryVM = memoryVM
         _systemVM     = State(initialValue: SystemHealthViewModel(repository: RemoteSystemHealthRepository(client: client)))
+        _gatewayStatusVM = State(initialValue: GatewayStatusViewModel(client: client))
         _outreachVM   = State(initialValue: OutreachStatsViewModel(repository: RemoteOutreachRepository(client: client)))
         _blogVM       = State(initialValue: BlogPipelineViewModel(repository: RemoteBlogRepository(client: client)))
         _commandsVM   = State(initialValue: CommandsViewModel(client: client, cronRepository: RemoteCronRepository(client: client), cronDetailRepository: cronDetailRepository))
         _tokenUsageVM = State(initialValue: TokenUsageViewModel(client: client))
         _homeToolsVM = State(initialValue: ToolsConfigViewModel(client: client))
         _homeAdminVM = State(initialValue: AdminViewModel(client: client))
+        _jobsVM = State(initialValue: JobsViewModel(client: client))
     }
 
     var body: some View {
@@ -68,38 +72,14 @@ struct HomeView: View {
                             .highPriorityGesture(cardDragGesture(for: card.id), including: armedDragCard == card.id ? .gesture : .subviews)
                     }
 
-                    if systemVM.data == nil && tokenUsageVM.data == nil {
+                    if gatewayStatusVM.status == nil && !gatewayStatusVM.isLoading && gatewayStatusVM.error != nil {
                         ContentUnavailableView(
-                            "聊天与定时任务仍可用",
-                            systemImage: "message.badge",
-                            description: Text("当前首页缺少的是 /stats/* 或 /tools/invoke 扩展数据，不是聊天主链路故障。你仍然可以继续使用聊天、线程历史和定时任务。")
+                            "网关暂时不可达",
+                            systemImage: "bolt.horizontal.circle",
+                            description: Text("聊天和定时任务主链路仍可以用。下拉刷新或到「设置 · 连接与诊断」检查链路。")
                         )
                         .padding(.top, Spacing.sm)
                     }
-
-                    if let systemError = systemVM.error {
-                        VStack(alignment: .leading, spacing: Spacing.xxs) {
-                            Text("首页扩展接口失败")
-                                .font(AppTypography.micro)
-                                .foregroundStyle(AppColors.warning)
-                            Text(systemError.localizedDescription)
-                                .font(AppTypography.captionMono)
-                                .foregroundStyle(AppColors.neutral)
-                            Text("如果右下角日志里仍能看到 /v1/models、/api/chat/thread/new、/api/chat/send、/api/chat/history 成功，这说明失败点在统计扩展接口，而不是聊天主链路。")
-                                .font(AppTypography.nano)
-                                .foregroundStyle(AppColors.neutral)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    Text("首页卡片为空通常表示扩展统计接口未启用；这不会阻止 IronClaw 的聊天、线程历史或定时任务主路径。")
-                        .font(AppTypography.micro)
-                        .foregroundStyle(AppColors.neutral)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("若要定位失败阶段，请打开右下角日志浮窗；日志会记录模型探活、建线程、发送消息、历史轮询与 routines 请求。")
-                        .font(AppTypography.nano)
-                        .foregroundStyle(AppColors.neutral)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.sm)
@@ -163,15 +143,15 @@ struct HomeView: View {
         }
         .onAppear {
             systemVM.startPolling()
+            gatewayStatusVM.startPolling(interval: 15)
             cardOrder = HomeCardOrderStore.load()
         }
         .onDisappear {
             systemVM.stopPolling()
+            gatewayStatusVM.stopPolling()
         }
         .task {
             cronVM.start()
-            outreachVM.start()
-            blogVM.start()
             tokenUsageVM.start()
             if homeAdminVM.modelsConfig == nil && !homeAdminVM.isLoading {
                 await homeAdminVM.load()
@@ -181,6 +161,9 @@ struct HomeView: View {
             }
             if memoryVM.skills.isEmpty && !memoryVM.isLoadingSkills {
                 await memoryVM.loadSkills()
+            }
+            if jobsVM.jobs.isEmpty && !jobsVM.isLoading {
+                await jobsVM.load()
             }
         }
         .confirmationDialog("切换账号", isPresented: $showAccountSwitcher, titleVisibility: .visible) {
@@ -204,12 +187,7 @@ struct HomeView: View {
     private func homeCardView(_ id: HomeCardID) -> some View {
         switch id {
         case .systemHealth:
-            NavigationLink {
-                SystemHealthDetailView(vm: systemVM)
-            } label: {
-                SystemHealthCard(vm: systemVM)
-            }
-            .buttonStyle(.plain)
+            GatewayStatusCard(vm: gatewayStatusVM)
         case .settingsModules:
             settingsModulesCard
         case .commands:
@@ -313,17 +291,17 @@ struct HomeView: View {
     private var homeSubtitle: some View {
         let cronJobs = cronVM.data ?? []
         let failedCrons = cronJobs.filter { $0.status == .failed }.count
-        let systemOk = systemVM.data != nil && systemVM.error == nil
+        let gatewayOk = gatewayStatusVM.status != nil
 
         if failedCrons > 0 {
             Text("\(failedCrons) 个定时任务失败")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.danger)
-        } else if !systemOk && systemVM.error != nil {
-            Text("系统暂不可用")
+        } else if !gatewayOk && gatewayStatusVM.error != nil {
+            Text("网关暂不可达")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.warning)
-        } else if cronJobs.isEmpty {
+        } else if cronJobs.isEmpty && !gatewayOk {
             Text("加载中…")
                 .font(AppTypography.micro)
                 .foregroundStyle(AppColors.neutral)
@@ -376,14 +354,23 @@ struct HomeView: View {
             ControlCenterSection(
                 id: "automation",
                 title: "自动化",
-                subtitle: "定时任务 · 技能",
+                subtitle: "任务 · 定时任务 · 技能",
                 icon: "clock.arrow.2.circlepath",
                 tint: AppColors.metricSecondary,
                 modules: [
                     ControlCenterModule(
+                        id: "jobs",
+                        title: "任务",
+                        subtitle: "异步 Job 队列",
+                        icon: "hourglass",
+                        tint: AppColors.info,
+                        detail: jobsModuleDetail,
+                        destination: AnyView(JobsConsoleView(vm: jobsVM))
+                    ),
+                    ControlCenterModule(
                         id: "crons",
                         title: "定时任务",
-                        subtitle: "任务与历史",
+                        subtitle: "Cron 与历史",
                         icon: "clock.arrow.2.circlepath",
                         tint: AppColors.metricSecondary,
                         detail: cronModuleDetail,
@@ -468,6 +455,16 @@ struct HomeView: View {
         }
         return "定时计划"
     }
+
+    private var jobsModuleDetail: String {
+        if let s = jobsVM.summary {
+            if s.failed + s.stuck > 0 { return "\(s.failed + s.stuck) 失败" }
+            if s.inProgress > 0 { return "\(s.inProgress) 进行中" }
+            if s.pending > 0 { return "\(s.pending) 待处理" }
+            return "\(s.total) 个"
+        }
+        return "任务列表"
+    }
 }
 
 private struct HomeCardDescriptor: Identifiable {
@@ -502,6 +499,9 @@ private enum HomeCardOrderStore {
     }
 
     private static var defaultOrder: [HomeCardID] {
-        [.systemHealth, .settingsModules, .commands, .tokenUsage, .outreach, .blogPipeline]
+        // Only show cards that have real data sources wired to IronClaw REST API.
+        // outreach / blogPipeline / commands depend on extensions that the
+        // current gateway no longer exposes — they'd always render as unavailable.
+        [.systemHealth, .settingsModules, .tokenUsage]
     }
 }

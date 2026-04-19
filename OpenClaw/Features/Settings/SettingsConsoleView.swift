@@ -9,6 +9,8 @@ struct SettingsConsoleView: View {
     @State private var commandsVM: CommandsViewModel
     @State private var selectedSection: SettingsConsoleSection
     @State private var debugEnabled: Bool = AppDebugSettings.debugEnabled
+    @State private var logLevel: String?
+    @State private var isLoadingLogLevel = false
 
     init(accountStore: AccountStore, client: GatewayClientProtocol, memoryVM: MemoryViewModel, initialSection: SettingsConsoleSection = .network) {
         self.accountStore = accountStore
@@ -47,11 +49,25 @@ struct SettingsConsoleView: View {
             if toolsVM.config == nil && !toolsVM.isLoading {
                 await toolsVM.load()
             }
+            await loadLogLevel()
         }
         .refreshable {
             async let tools: Void = toolsVM.load()
-            _ = await tools
+            async let level: Void = loadLogLevel()
+            _ = await (tools, level)
             Haptics.shared.refreshComplete()
+        }
+    }
+
+    private func loadLogLevel() async {
+        guard !isLoadingLogLevel else { return }
+        isLoadingLogLevel = true
+        defer { isLoadingLogLevel = false }
+        do {
+            let dto: LogLevelDTO = try await client.stats("api/logs/level")
+            logLevel = dto.level
+        } catch {
+            AppLogStore.shared.append("SettingsConsoleView: /api/logs/level 失败 \(error.localizedDescription)")
         }
     }
 
@@ -132,6 +148,42 @@ struct SettingsConsoleView: View {
                 Text("全局调试")
             } footer: {
                 Text("控制所有调试界面的显隐：日志浮窗、诊断详情、扩展调试输出。关闭后立即清空已收集的日志，不影响聊天主链路。")
+            }
+
+            Section("网关日志级别") {
+                HStack(spacing: Spacing.sm) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: AppRadius.md)
+                            .fill(AppColors.metricHighlight.opacity(0.14))
+                            .frame(width: 38, height: 38)
+                        Image(systemName: "text.line.last.and.arrowtriangle.forward")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.metricHighlight)
+                    }
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text("当前日志级别")
+                            .font(AppTypography.body)
+                        Text("GET /api/logs/level")
+                            .font(AppTypography.nano)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                    Spacer()
+                    if isLoadingLogLevel {
+                        ProgressView().scaleEffect(0.75)
+                    } else if let level = logLevel {
+                        Text(level)
+                            .font(AppTypography.captionBold)
+                            .padding(.horizontal, Spacing.xs)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(AppColors.metricHighlight.opacity(0.14)))
+                            .foregroundStyle(AppColors.metricHighlight)
+                    } else {
+                        Text("—")
+                            .font(AppTypography.nano)
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                }
+                .padding(.vertical, Spacing.xxs)
             }
 
             Section("诊断入口") {
