@@ -21,7 +21,6 @@ struct AgentSettingsView: View {
                 }
 
                 if let agent = adminVM.agent {
-                    systemPromptSection(agent)
                     behaviorSection(agent)
                 }
             }
@@ -47,9 +46,6 @@ struct AgentSettingsView: View {
             if adminVM.agents.isEmpty && !adminVM.isLoading {
                 await adminVM.load()
             }
-        }
-        .sheet(isPresented: $editingPrompt) {
-            systemPromptEditor
         }
         .alert("保存失败", isPresented: Binding(
             get: { saveError != nil },
@@ -89,12 +85,12 @@ struct AgentSettingsView: View {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(agent.displayName)
                             .font(AppTypography.cardTitle)
-                        if let desc = agent.description, !desc.isEmpty {
-                            Text(desc)
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.neutral)
-                                .lineLimit(2)
-                        }
+                        Text("角色: \(agent.role)")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.neutral)
+                        Text("模型: \(agent.model)")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.neutral)
                     }
                     Spacer(minLength: 0)
                 }
@@ -143,7 +139,7 @@ struct AgentSettingsView: View {
     }
 
     @ViewBuilder
-    private func agentRow(_ agent: AgentDTO) -> some View {
+    private func agentRow(_ agent: AgentInfo) -> some View {
         let isActive = agent.id == adminVM.agent?.id
 
         Button {
@@ -154,12 +150,12 @@ struct AgentSettingsView: View {
                     Circle()
                         .fill((isActive ? AppColors.success : AppColors.neutral).opacity(0.14))
                         .frame(width: 36, height: 36)
-                    Image(systemName: isActive ? "checkmark.circle.fill" : "person.circle")
-                        .foregroundStyle(isActive ? AppColors.success : AppColors.neutral)
+                    Text(agent.emoji)
+                        .font(.system(size: 20))
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: Spacing.xxs) {
-                        Text(agent.displayName)
+                        Text(agent.name)
                             .font(AppTypography.body)
                             .fontWeight(.medium)
                             .lineLimit(1)
@@ -171,9 +167,17 @@ struct AgentSettingsView: View {
                                 .background(Capsule().fill(AppColors.success.opacity(0.15)))
                                 .foregroundStyle(AppColors.success)
                         }
+                        if agent.isDefault {
+                            Text("默认")
+                                .font(AppTypography.nano)
+                                .padding(.horizontal, Spacing.xxs)
+                                .padding(.vertical, 1)
+                                .background(Capsule().fill(AppColors.info.opacity(0.15)))
+                                .foregroundStyle(AppColors.info)
+                        }
                     }
-                    if let desc = agent.description, !desc.isEmpty {
-                        Text(desc)
+                    if let model = agent.model {
+                        Text(model)
                             .font(AppTypography.nano)
                             .foregroundStyle(AppColors.neutral)
                             .lineLimit(1)
@@ -197,96 +201,10 @@ struct AgentSettingsView: View {
         .disabled(isActive)
     }
 
-    // MARK: - System Prompt
-
-    @ViewBuilder
-    private func systemPromptSection(_ agent: AgentDTO) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "text.bubble.fill")
-                    .foregroundStyle(AppColors.info)
-                Text("系统提示词")
-                    .font(AppTypography.captionBold)
-                Spacer()
-                Button {
-                    draftPrompt = agent.systemPrompt ?? ""
-                    editingPrompt = true
-                } label: {
-                    Label("编辑", systemImage: "pencil")
-                        .font(AppTypography.nano)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, Spacing.xs)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(AppColors.info.opacity(0.12)))
-                        .foregroundStyle(AppColors.info)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if let prompt = agent.systemPrompt, !prompt.isEmpty {
-                Text(prompt)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.neutral)
-                    .lineLimit(5)
-                    .padding(Spacing.sm)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppRadius.md)
-                            .fill(Color(.systemGroupedBackground))
-                    )
-            } else {
-                Text("未设置系统提示词")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.neutral)
-                    .italic()
-            }
-        }
-        .padding(Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
-    }
-
-    @ViewBuilder
-    private var systemPromptEditor: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                TextEditor(text: $draftPrompt)
-                    .font(AppTypography.body)
-                    .padding(Spacing.sm)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("编辑系统提示词")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") {
-                        editingPrompt = false
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        Task { await saveSystemPrompt() }
-                    } label: {
-                        if saving {
-                            ProgressView().scaleEffect(0.7)
-                        } else {
-                            Text("保存").fontWeight(.semibold)
-                        }
-                    }
-                    .disabled(saving)
-                }
-            }
-        }
-    }
-
     // MARK: - Behavior
 
     @ViewBuilder
-    private func behaviorSection(_ agent: AgentDTO) -> some View {
+    private func behaviorSection(_ agent: AgentProfile) -> some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: "slider.horizontal.3")
@@ -297,9 +215,40 @@ struct AgentSettingsView: View {
             }
 
             VStack(spacing: Spacing.xs) {
-                behaviorRow(icon: "brain.head.profile", label: "记忆", value: "启用")
-                behaviorRow(icon: "bolt.circle.fill", label: "技能", value: "启用")
-                behaviorRow(icon: "wrench.and.screwdriver", label: "工具", value: "启用")
+                behaviorRow(icon: "brain.head.profile", label: "使用规划", value: agent.usePlanning ? "启用" : "禁用", enabled: agent.usePlanning)
+                behaviorRow(icon: "checkmark.circle.fill", label: "自动批准工具", value: agent.autoApproveTools ? "启用" : "禁用", enabled: agent.autoApproveTools)
+                behaviorRow(icon: "wrench.and.screwdriver", label: "允许本地工具", value: agent.allowLocalTools ? "启用" : "禁用", enabled: agent.allowLocalTools)
+
+                if !agent.activatedChannels.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        HStack(spacing: Spacing.xs) {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .foregroundStyle(AppColors.success)
+                                .frame(width: 24)
+                            Text("激活的频道")
+                                .font(AppTypography.body)
+                            Spacer()
+                        }
+                        .padding(Spacing.sm)
+                        .background(
+                            RoundedRectangle(cornerRadius: AppRadius.md)
+                                .fill(Color(.systemGroupedBackground))
+                        )
+
+                        ForEach(agent.activatedChannels, id: \.self) { channel in
+                            HStack(spacing: Spacing.xs) {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 6))
+                                    .foregroundStyle(AppColors.success)
+                                Text(channel)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(AppColors.neutral)
+                                Spacer()
+                            }
+                            .padding(.leading, Spacing.md)
+                        }
+                    }
+                }
             }
         }
         .padding(Spacing.md)
@@ -311,17 +260,17 @@ struct AgentSettingsView: View {
     }
 
     @ViewBuilder
-    private func behaviorRow(icon: String, label: String, value: String) -> some View {
+    private func behaviorRow(icon: String, label: String, value: String, enabled: Bool) -> some View {
         HStack(spacing: Spacing.sm) {
             Image(systemName: icon)
-                .foregroundStyle(AppColors.metricPrimary)
+                .foregroundStyle(enabled ? AppColors.success : AppColors.neutral)
                 .frame(width: 24)
             Text(label)
                 .font(AppTypography.body)
             Spacer()
             Text(value)
                 .font(AppTypography.caption)
-                .foregroundStyle(AppColors.neutral)
+                .foregroundStyle(enabled ? AppColors.success : AppColors.neutral)
         }
         .padding(Spacing.sm)
         .background(
@@ -332,24 +281,10 @@ struct AgentSettingsView: View {
 
     // MARK: - Actions
 
-    private func switchAgent(_ agent: AgentDTO) async {
+    private func switchAgent(_ agent: AgentInfo) async {
         do {
             try await adminVM.setActiveAgent(id: agent.id)
             await adminVM.load()
-            Haptics.shared.success()
-        } catch {
-            saveError = error.localizedDescription
-            Haptics.shared.error()
-        }
-    }
-
-    private func saveSystemPrompt() async {
-        saving = true
-        defer { saving = false }
-        do {
-            // TODO: Implement system prompt update API
-            // try await adminVM.updateAgentSystemPrompt(draftPrompt)
-            editingPrompt = false
             Haptics.shared.success()
         } catch {
             saveError = error.localizedDescription
