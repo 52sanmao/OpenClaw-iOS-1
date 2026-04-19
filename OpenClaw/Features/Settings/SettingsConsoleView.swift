@@ -8,6 +8,7 @@ struct SettingsConsoleView: View {
     @State private var toolsVM: ToolsConfigViewModel
     @State private var commandsVM: CommandsViewModel
     @State private var selectedSection: SettingsConsoleSection
+    @State private var debugEnabled: Bool = AppDebugSettings.debugEnabled
 
     init(accountStore: AccountStore, client: GatewayClientProtocol, memoryVM: MemoryViewModel, initialSection: SettingsConsoleSection = .network) {
         self.accountStore = accountStore
@@ -96,14 +97,41 @@ struct SettingsConsoleView: View {
                     icon: "network",
                     tint: AppColors.info
                 )
+            }
 
-                navigationSummaryRow(
-                    title: "调试状态",
-                    value: AppDebugSettings.debugEnabled ? "已开启" : "已关闭",
-                    detail: AppDebugSettings.debugEnabled ? "日志浮窗、调试输出与诊断详情均已启用" : "当前只保留正常运行所需界面",
-                    icon: AppDebugSettings.debugEnabled ? "ladybug.fill" : "ladybug",
-                    tint: AppDebugSettings.debugEnabled ? AppColors.warning : AppColors.neutral
-                )
+            Section {
+                Toggle(isOn: $debugEnabled) {
+                    HStack(spacing: Spacing.sm) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: AppRadius.md)
+                                .fill(AppColors.tintedBackground(debugEnabled ? AppColors.warning : AppColors.neutral, opacity: 0.14))
+                                .frame(width: 38, height: 38)
+                            Image(systemName: debugEnabled ? "ladybug.fill" : "ladybug")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(debugEnabled ? AppColors.warning : AppColors.neutral)
+                        }
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            Text("调试模式")
+                                .font(AppTypography.body)
+                            Text(debugEnabled ? "日志浮窗、调试输出与诊断详情均已启用" : "当前只保留正常运行所需界面")
+                                .font(AppTypography.micro)
+                                .foregroundStyle(AppColors.neutral)
+                        }
+                    }
+                    .padding(.vertical, Spacing.xxs)
+                }
+                .tint(AppColors.primaryAction)
+                .onChange(of: debugEnabled) { _, newValue in
+                    AppDebugSettings.debugEnabled = newValue
+                    if !newValue {
+                        AppLogStore.shared.clear()
+                    }
+                    Haptics.shared.refreshComplete()
+                }
+            } header: {
+                Text("全局调试")
+            } footer: {
+                Text("控制所有调试界面的显隐：日志浮窗、诊断详情、扩展调试输出。关闭后立即清空已收集的日志，不影响聊天主链路。")
             }
 
             Section("诊断入口") {
@@ -112,7 +140,7 @@ struct SettingsConsoleView: View {
                 } label: {
                     settingsRow(
                         title: "连接与诊断",
-                        subtitle: "测试连接、查看诊断详情与调试状态",
+                        subtitle: "测试连接、查看诊断详情与账号切换",
                         icon: "heart.text.square.fill",
                         tint: AppColors.info
                     )

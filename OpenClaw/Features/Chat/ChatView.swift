@@ -3,8 +3,12 @@ import SwiftUI
 import UIKit
 
 struct ChatView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.presentationMode) private var presentationMode
+    let client: GatewayClientProtocol
+    let memoryVM: MemoryViewModel?
+    let cronVM: CronSummaryViewModel?
+    let cronDetailRepository: CronDetailRepository?
+    let accountStore: AccountStore?
+
     @State var vm: ChatViewModel
     @State private var inputText = ""
     @FocusState private var isInputFocused: Bool
@@ -17,6 +21,22 @@ struct ChatView: View {
     private let bottomScrollAnchorId = "lingkong-chat-scroll-bottom-anchor"
     private let autoScrollThrottleInterval: CFAbsoluteTime = 0.12
 
+    init(
+        vm: ChatViewModel,
+        client: GatewayClientProtocol,
+        memoryVM: MemoryViewModel? = nil,
+        cronVM: CronSummaryViewModel? = nil,
+        cronDetailRepository: CronDetailRepository? = nil,
+        accountStore: AccountStore? = nil
+    ) {
+        _vm = State(initialValue: vm)
+        self.client = client
+        self.memoryVM = memoryVM
+        self.cronVM = cronVM
+        self.cronDetailRepository = cronDetailRepository
+        self.accountStore = accountStore
+    }
+
     var body: some View {
         ChatScreenShell(
             topBanner: { topBannerView },
@@ -24,9 +44,7 @@ struct ChatView: View {
             inputHeader: { toolbarSectionView },
             composer: { inputSectionView }
         )
-        .navigationBarBackButtonHidden(true)
         .toolbar {
-            navigationLeadingItem
             navigationTitleItem
             ToolbarItem(placement: .primaryAction) {
                 if vm.isStreaming {
@@ -214,11 +232,38 @@ struct ChatView: View {
     private var toolbarSectionView: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                toolbarButton(icon: "puzzlepiece.fill", label: "技能")
-                toolbarButton(icon: "chart.bar.fill", label: "令牌")
-                toolbarButton(icon: "clock.fill", label: "定时任务")
-                toolbarButton(icon: "gearshape.fill", label: "设置")
-                toolbarButton(icon: "brain", label: "思考")
+                if let memoryVM {
+                    NavigationLink {
+                        SkillsListView(vm: memoryVM)
+                    } label: {
+                        chatQuickPill(icon: "puzzlepiece.fill", label: "技能")
+                    }
+                    .buttonStyle(.plain)
+                }
+                NavigationLink {
+                    TokenDetailView(vm: TokenUsageViewModel(client: client), detailRepository: cronDetailRepository ?? RemoteCronDetailRepository(client: client))
+                } label: {
+                    chatQuickPill(icon: "chart.bar.fill", label: "令牌")
+                }
+                .buttonStyle(.plain)
+
+                if let cronVM, let cronDetailRepository {
+                    NavigationLink {
+                        CronsTab(vm: cronVM, detailRepository: cronDetailRepository, client: client)
+                    } label: {
+                        chatQuickPill(icon: "clock.fill", label: "定时任务")
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let accountStore, let memoryVM {
+                    NavigationLink {
+                        SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM)
+                    } label: {
+                        chatQuickPill(icon: "gearshape.fill", label: "设置")
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.leading, 16)
             .padding(.trailing, 16)
@@ -228,7 +273,7 @@ struct ChatView: View {
     }
 
     @ViewBuilder
-    private func toolbarButton(icon: String, label: String) -> some View {
+    private func chatQuickPill(icon: String, label: String) -> some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
                 .font(.system(size: 14))
@@ -268,30 +313,6 @@ struct ChatView: View {
                 .frame(minHeight: 40, alignment: .topLeading)
 
                 HStack(spacing: 12) {
-                    Button(action: {}) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.blue.opacity(0.1))
-                                .frame(width: 32, height: 32)
-                            Image(systemName: "plus")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: {}) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.12))
-                                .frame(width: 32, height: 32)
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-
                     Spacer()
 
                     if !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -299,18 +320,6 @@ struct ChatView: View {
                             Image(systemName: "arrow.up.circle.fill")
                                 .font(.system(size: 32))
                                 .foregroundColor(.blue)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Button(action: {}) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.1))
-                                    .frame(width: 38, height: 38)
-                                Image(systemName: "mic.fill")
-                                    .font(.system(size: 18, weight: .medium))
-                                    .foregroundColor(.blue)
-                            }
                         }
                         .buttonStyle(.plain)
                     }
@@ -350,28 +359,6 @@ struct ChatView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 48)
-    }
-
-    private var navigationLeadingItem: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if isPresentedFromNavigationStack {
-                Button {
-                    dismiss()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 17, weight: .semibold))
-                        Text("返回")
-                            .font(.system(size: 17))
-                    }
-                    .foregroundColor(.blue)
-                }
-            }
-        }
-    }
-
-    private var isPresentedFromNavigationStack: Bool {
-        presentationMode.wrappedValue.isPresented
     }
 
     private var navigationTitleItem: some ToolbarContent {

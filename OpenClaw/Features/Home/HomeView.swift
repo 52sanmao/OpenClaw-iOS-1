@@ -123,7 +123,13 @@ struct HomeView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     HStack(spacing: Spacing.sm) {
                         NavigationLink {
-                            ChatTab(client: client)
+                            ChatTab(
+                                client: client,
+                                memoryVM: memoryVM,
+                                cronVM: cronVM,
+                                cronDetailRepository: cronDetailRepository,
+                                accountStore: accountStore
+                            )
                         } label: {
                             Image("openclaw")
                                 .resizable()
@@ -330,7 +336,7 @@ struct HomeView: View {
 
     private var settingsModulesCard: some View {
         ControlCenterView(
-            modules: controlCenterModules,
+            sections: controlCenterSections,
             isDragging: armedDragCard == .settingsModules || draggingCard == .settingsModules,
             onDragHandlePress: {
                 armedDragCard = .settingsModules
@@ -338,79 +344,115 @@ struct HomeView: View {
         )
     }
 
-    private var controlCenterModules: [ControlCenterModule] {
+    private var controlCenterSections: [ControlCenterSection] {
         [
-            ControlCenterModule(
-                id: "models",
-                title: "模型",
-                subtitle: "默认与回退",
+            ControlCenterSection(
+                id: "intelligence",
+                title: "智能",
+                subtitle: "模型 · 助手",
                 icon: "cpu.fill",
                 tint: AppColors.metricPrimary,
-                detail: homeAdminVM.modelsConfig?.defaultModelDisplay ?? "推理",
-                destination: AnyView(InferenceConsoleView(adminVM: homeAdminVM))
+                modules: [
+                    ControlCenterModule(
+                        id: "models",
+                        title: "模型",
+                        subtitle: "默认与回退",
+                        icon: "cpu.fill",
+                        tint: AppColors.metricPrimary,
+                        detail: homeAdminVM.modelsConfig?.defaultModelDisplay ?? "推理",
+                        destination: AnyView(InferenceConsoleView(adminVM: homeAdminVM))
+                    ),
+                    ControlCenterModule(
+                        id: "agents",
+                        title: "助手",
+                        subtitle: "代理编排",
+                        icon: "person.2.fill",
+                        tint: AppColors.metricTertiary,
+                        detail: "\(homeAdminVM.agents.count) 个代理",
+                        destination: AnyView(AgentsConsoleView(adminVM: homeAdminVM))
+                    )
+                ]
             ),
-            ControlCenterModule(
-                id: "agents",
-                title: "助手",
-                subtitle: "代理编排",
-                icon: "person.2.fill",
-                tint: AppColors.metricTertiary,
-                detail: "\(homeAdminVM.agents.count) 个代理",
-                destination: AnyView(AgentsConsoleView(adminVM: homeAdminVM))
-            ),
-            ControlCenterModule(
-                id: "channels",
-                title: "频道",
-                subtitle: "连接状态",
-                icon: "bubble.left.and.bubble.right.fill",
-                tint: AppColors.success,
-                detail: "\((homeAdminVM.channelsStatus?.channels.filter { $0.isConnected }.count) ?? 0) 已连接",
-                destination: AnyView(ChannelsConsoleView(adminVM: homeAdminVM))
-            ),
-            ControlCenterModule(
-                id: "crons",
-                title: "定时任务",
-                subtitle: "任务与历史",
+            ControlCenterSection(
+                id: "automation",
+                title: "自动化",
+                subtitle: "定时任务 · 技能",
                 icon: "clock.arrow.2.circlepath",
                 tint: AppColors.metricSecondary,
-                detail: cronModuleDetail,
-                destination: AnyView(CronsTab(vm: cronVM, detailRepository: cronDetailRepository, client: client))
+                modules: [
+                    ControlCenterModule(
+                        id: "crons",
+                        title: "定时任务",
+                        subtitle: "任务与历史",
+                        icon: "clock.arrow.2.circlepath",
+                        tint: AppColors.metricSecondary,
+                        detail: cronModuleDetail,
+                        destination: AnyView(CronsTab(vm: cronVM, detailRepository: cronDetailRepository, client: client))
+                    ),
+                    ControlCenterModule(
+                        id: "skills",
+                        title: "技能库",
+                        subtitle: "技能文件",
+                        icon: "bolt.circle.fill",
+                        tint: AppColors.info,
+                        detail: memoryVM.skills.isEmpty ? "技能树" : "\(memoryVM.skills.count) 个技能",
+                        destination: AnyView(SkillsListView(vm: memoryVM))
+                    )
+                ]
             ),
-            ControlCenterModule(
-                id: "extensions",
-                title: "扩展",
-                subtitle: "工具配置",
-                icon: "puzzlepiece.extension.fill",
+            ControlCenterSection(
+                id: "connectivity",
+                title: "连接",
+                subtitle: "频道 · MCP",
+                icon: "antenna.radiowaves.left.and.right",
+                tint: AppColors.success,
+                modules: [
+                    ControlCenterModule(
+                        id: "channels",
+                        title: "频道",
+                        subtitle: "连接状态",
+                        icon: "bubble.left.and.bubble.right.fill",
+                        tint: AppColors.success,
+                        detail: "\((homeAdminVM.channelsStatus?.channels.filter { $0.isConnected }.count) ?? 0) 已连接",
+                        destination: AnyView(ChannelsConsoleView(adminVM: homeAdminVM))
+                    ),
+                    ControlCenterModule(
+                        id: "mcp",
+                        title: "MCP 服务",
+                        subtitle: "服务器与工具",
+                        icon: "server.rack",
+                        tint: AppColors.metricHighlight,
+                        detail: "\(homeToolsVM.mcpServers.count) 个服务器",
+                        destination: AnyView(McpServersView(vm: homeToolsVM))
+                    )
+                ]
+            ),
+            ControlCenterSection(
+                id: "admin",
+                title: "运维",
+                subtitle: "扩展 · 用户",
+                icon: "slider.horizontal.below.square",
                 tint: AppColors.metricWarm,
-                detail: homeToolsVM.config?.profile.capitalized ?? "工具",
-                destination: AnyView(ExtensionsConsoleView(vm: homeToolsVM))
-            ),
-            ControlCenterModule(
-                id: "mcp",
-                title: "MCP 服务",
-                subtitle: "服务器与工具",
-                icon: "server.rack",
-                tint: AppColors.metricHighlight,
-                detail: "\(homeToolsVM.mcpServers.count) 个服务器",
-                destination: AnyView(McpServersView(vm: homeToolsVM))
-            ),
-            ControlCenterModule(
-                id: "skills",
-                title: "技能库",
-                subtitle: "技能文件",
-                icon: "bolt.circle.fill",
-                tint: AppColors.info,
-                detail: memoryVM.skills.isEmpty ? "技能树" : "\(memoryVM.skills.count) 个技能",
-                destination: AnyView(SkillsListView(vm: memoryVM))
-            ),
-            ControlCenterModule(
-                id: "users",
-                title: "用户管理",
-                subtitle: "账号与调试",
-                icon: "person.crop.circle.fill",
-                tint: AppColors.neutral,
-                detail: "\(accountStore.accounts.count) 个账号",
-                destination: AnyView(UsersConsoleView(accountStore: accountStore, client: client))
+                modules: [
+                    ControlCenterModule(
+                        id: "extensions",
+                        title: "扩展",
+                        subtitle: "工具配置",
+                        icon: "puzzlepiece.extension.fill",
+                        tint: AppColors.metricWarm,
+                        detail: homeToolsVM.config?.profile.capitalized ?? "工具",
+                        destination: AnyView(ExtensionsConsoleView(vm: homeToolsVM))
+                    ),
+                    ControlCenterModule(
+                        id: "users",
+                        title: "用户管理",
+                        subtitle: "账号与调试",
+                        icon: "person.crop.circle.fill",
+                        tint: AppColors.neutral,
+                        detail: "\(accountStore.accounts.count) 个账号",
+                        destination: AnyView(UsersConsoleView(accountStore: accountStore, client: client))
+                    )
+                ]
             )
         ]
     }

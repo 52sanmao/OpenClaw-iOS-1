@@ -129,7 +129,13 @@ struct MainTabView: View {
             case .sessions:
                 SessionsView(vm: sessionsVM, repository: sessionRepo, client: client)
             case .chat:
-                ChatTab(client: client)
+                ChatTab(
+                    client: client,
+                    memoryVM: memoryVM,
+                    cronVM: cronVM,
+                    cronDetailRepository: cronDetailRepo,
+                    accountStore: accountStore
+                )
             case .settings:
                 SettingsView(accountStore: accountStore, client: client)
             case nil:

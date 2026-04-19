@@ -1,9 +1,13 @@
 import SwiftUI
 
 struct ControlCenterView: View {
-    let modules: [ControlCenterModule]
+    let sections: [ControlCenterSection]
     let isDragging: Bool
     let onDragHandlePress: () -> Void
+
+    private var moduleCount: Int {
+        sections.reduce(0) { $0 + $1.modules.count }
+    }
 
     private let columns = [
         GridItem(.flexible(), spacing: Spacing.sm),
@@ -20,20 +24,43 @@ struct ControlCenterView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 header
 
-                LazyVGrid(columns: columns, spacing: Spacing.sm) {
-                    ForEach(modules) { module in
-                        NavigationLink {
-                            module.destination
-                        } label: {
-                            ControlCenterTile(module: module)
-                        }
-                        .buttonStyle(.plain)
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    ForEach(sections) { section in
+                        sectionView(section)
                     }
                 }
 
-                quickLinks
-
                 HomeCardDetailHint()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionView(_ section: ControlCenterSection) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xxs) {
+                Image(systemName: section.icon)
+                    .font(AppTypography.nano)
+                    .foregroundStyle(section.tint)
+                Text(section.title)
+                    .font(AppTypography.captionBold)
+                    .foregroundStyle(.primary)
+                Text(section.subtitle)
+                    .font(AppTypography.micro)
+                    .foregroundStyle(AppColors.neutral)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            LazyVGrid(columns: columns, spacing: Spacing.sm) {
+                ForEach(section.modules) { module in
+                    NavigationLink {
+                        module.destination
+                    } label: {
+                        ControlCenterTile(module: module)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
@@ -41,11 +68,11 @@ struct ControlCenterView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("像网页控制台一样进入推理、渠道、扩展与用户管理")
+                Text("按用途分组的控制面板")
                     .font(AppTypography.body)
                     .fontWeight(.medium)
                     .foregroundStyle(.primary)
-                Text("首页保留概览，每个模块直接进入对应控制面板，不再共享单一入口。")
+                Text("智能配置、自动化、连接、运维各自独立 — 点击卡片进入二级详情页。")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
             }
@@ -58,7 +85,7 @@ struct ControlCenterView: View {
                     Text("按住拖动")
                         .font(AppTypography.nano)
                         .foregroundStyle(AppColors.primaryAction)
-                    Text("\(modules.count) 个模块")
+                    Text("\(moduleCount) 个模块")
                         .font(AppTypography.captionBold)
                         .foregroundStyle(AppColors.primaryAction)
                 }
@@ -77,34 +104,15 @@ struct ControlCenterView: View {
             .accessibilityLabel("长按拖动控制中心卡片")
         }
     }
+}
 
-    private var quickLinks: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.sm) {
-                ForEach(modules.prefix(4)) { module in
-                    NavigationLink {
-                        module.destination
-                    } label: {
-                        HStack(spacing: Spacing.xxs) {
-                            Image(systemName: module.icon)
-                                .font(AppTypography.nano)
-                            Text(module.title)
-                                .font(AppTypography.nano)
-                                .lineLimit(1)
-                        }
-                        .foregroundStyle(AppColors.neutral)
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xs)
-                        .background(
-                            Capsule()
-                                .fill(AppColors.neutral.opacity(0.08))
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
+struct ControlCenterSection: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+    let modules: [ControlCenterModule]
 }
 
 struct ControlCenterModule: Identifiable {
