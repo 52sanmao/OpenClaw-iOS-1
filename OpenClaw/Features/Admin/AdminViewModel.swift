@@ -9,6 +9,8 @@ final class AdminViewModel {
     var selectedModel: String?
     var selectedBackendId: String?
     var customProviders: [LLMProviderDTO] = []
+    var customProviderDTOs: [LLMCustomProviderDTO] = []
+    var builtinOverrides: [String: LLMBuiltinOverrideDTO] = [:]
     var modelsConfig: ModelsConfig?
 
     // Agent (orchestrator)
@@ -100,7 +102,9 @@ final class AdminViewModel {
         self.selectedModel = settings["selected_model"]?.stringValue
         self.selectedBackendId = settings["llm_backend"]?.stringValue
 
-        // Custom providers from settings.llm_custom_providers
+        // Custom providers from settings.llm_custom_providers — keep both the
+        // UI-facing LLMProviderDTO shape (for the provider list) and the
+        // source-of-truth LLMCustomProviderDTO array (for save round-trip).
         if let custom = settings["llm_custom_providers"]?.arrayValue {
             self.customProviders = custom.compactMap { value -> LLMProviderDTO? in
                 guard let obj = value.objectValue else { return nil }
@@ -118,8 +122,37 @@ final class AdminViewModel {
                     envBaseUrl: nil
                 )
             }
+            self.customProviderDTOs = custom.compactMap { value -> LLMCustomProviderDTO? in
+                guard let obj = value.objectValue else { return nil }
+                return LLMCustomProviderDTO(
+                    id: obj["id"]?.stringValue ?? "",
+                    name: obj["name"]?.stringValue ?? "",
+                    adapter: obj["adapter"]?.stringValue ?? "open_ai_completions",
+                    baseUrl: obj["base_url"]?.stringValue,
+                    defaultModel: obj["default_model"]?.stringValue,
+                    apiKey: obj["api_key"]?.stringValue,
+                    builtin: false
+                )
+            }
         } else {
             self.customProviders = []
+            self.customProviderDTOs = []
+        }
+
+        // Builtin overrides (per-provider api_key / model / base_url)
+        if let overrides = settings["llm_builtin_overrides"]?.objectValue {
+            var map: [String: LLMBuiltinOverrideDTO] = [:]
+            for (id, v) in overrides {
+                guard let obj = v.objectValue else { continue }
+                map[id] = LLMBuiltinOverrideDTO(
+                    apiKey: obj["api_key"]?.stringValue,
+                    model: obj["model"]?.stringValue,
+                    baseUrl: obj["base_url"]?.stringValue
+                )
+            }
+            self.builtinOverrides = map
+        } else {
+            self.builtinOverrides = [:]
         }
 
         // Models config (for legacy code that still reads it)
@@ -216,6 +249,10 @@ final class AdminViewModel {
         }
     }
 
+    func testConnectionRaw(_ body: LLMTestConnectionRequest) async throws -> LLMTestConnectionResponse {
+        try await client.statsPost("api/llm/test_connection", body: body)
+    }
+
     func listModels(for provider: LLMProviderDTO) async -> LLMListModelsResponse {
         let body = LLMListModelsRequest(
             adapter: provider.adapter ?? "open_ai_completions",
@@ -228,6 +265,24 @@ final class AdminViewModel {
         } catch {
             return LLMListModelsResponse(ok: false, message: error.localizedDescription, models: [])
         }
+    }
+
+    func listModelsRaw(_ body: LLMListModelsRequest) async throws -> LLMListModelsResponse {
+        try await client.statsPost("api/llm/list_models", body: body)
+    }
+
+    func builtinOverride(for id: String) -> LLMBuiltinOverrideDTO? {
+        builtinOverrides[id]
+    }
+
+    /// Remove a custom provider by id. Refuses to remove the currently active
+    /// provider — caller must switch first.
+    func removeCustomProvider(id: String) async throws {
+        guard id != selectedBackendId else {
+            throw NSError(domain: "Admin", code: 409, userInfo: [NSLocalizedDescriptionKey: "不能删除当前使用中的 Provider"])
+        }
+        let updated = customProviderDTOs.filter { $0.id != id }
+        try await saveCustomProviders(updated)
     }
 
     func installExtension(name: String, kind: String?) async throws {

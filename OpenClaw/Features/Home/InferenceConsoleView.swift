@@ -1,7 +1,11 @@
 import SwiftUI
 
-/// 推理控制台 — 对齐 Web UI 的「推理」：当前选中 provider/模型 hero + 全量 provider 列表（带
-/// 连接测试、列出模型），并把自定义 provider 与内置 provider 区分开来。
+/// 推理控制台 — 对齐 Web UI 的「推理」：
+///   - 顶部 hero 显示当前激活 provider + 模型
+///   - 内置 / 自定义 provider 分区
+///   - 每行有 Use / Configure / Edit / Delete 胶囊按钮（视 kind 显示）
+///   - 工具栏「+」：新增自定义 provider
+///   - 点击模型清单条目即把它设为默认模型（走 /api/settings/selected_model）
 struct InferenceConsoleView: View {
     let adminVM: AdminViewModel
 
@@ -9,6 +13,10 @@ struct InferenceConsoleView: View {
     @State private var listingModelsProviderId: String?
     @State private var probeResult: ProbeResult?
     @State private var modelListResult: ListModelsResult?
+    @State private var formMode: LLMProviderFormSheet.Mode?
+    @State private var actionError: String?
+    @State private var pendingDelete: PendingDelete?
+    @State private var settingActiveId: String?
 
     var body: some View {
         ScrollView {
@@ -37,6 +45,14 @@ struct InferenceConsoleView: View {
                         .foregroundStyle(AppColors.neutral)
                 }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    formMode = .addCustom
+                } label: {
+                    Image(systemName: "plus.circle")
+                }
+                .accessibilityLabel("新增 Provider")
+            }
         }
         .refreshable {
             await adminVM.load()
@@ -56,9 +72,39 @@ struct InferenceConsoleView: View {
             }
         }
         .sheet(item: $modelListResult) { result in
-            ModelListSheet(provider: result.provider, models: result.models) {
-                modelListResult = nil
+            ModelListSheet(
+                provider: result.provider,
+                models: result.models,
+                currentModel: adminVM.selectedModel,
+                canSelect: result.provider.id == adminVM.selectedBackendId
+            ) { model in
+                Task { await selectModel(model) }
             }
+        }
+        .sheet(item: $formMode) { mode in
+            LLMProviderFormSheet(mode: mode, adminVM: adminVM) {}
+        }
+        .alert("操作失败", isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("好的", role: .cancel) { actionError = nil }
+        } message: {
+            Text(actionError ?? "")
+        }
+        .confirmationDialog(
+            "删除 Provider",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let p = pendingDelete {
+                Button("删除 \(p.name)", role: .destructive) {
+                    Task { await delete(p.id) }
+                }
+                Button("取消", role: .cancel) { pendingDelete = nil }
+            }
+        } message: {
+            Text("删除后将从 llm_custom_providers 设置里移除，不可撤销。")
         }
     }
 
@@ -71,7 +117,7 @@ struct InferenceConsoleView: View {
         return "\(activeName) · \(m)"
     }
 
-    // MARK: - Active backend hero
+    // MARK: - Active hero
 
     @ViewBuilder
     private var activeBackendHero: some View {
@@ -90,8 +136,20 @@ struct InferenceConsoleView: View {
                         .padding(.vertical, 2)
                         .background(Capsule().fill(AppColors.metricPrimary.opacity(0.12)))
                     Spacer()
-                    Image(systemName: "bolt.fill")
-                        .foregroundStyle(AppColors.metricPrimary)
+                    if provider.builtin == true {
+                        Button {
+                            formMode = .configureBuiltin(provider)
+                        } label: {
+                            Label("配置", systemImage: "slider.horizontal.3")
+                                .font(AppTypography.nano)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, Spacing.xs)
+                                .padding(.vertical, 4)
+                                .background(Capsule().fill(AppColors.metricPrimary.opacity(0.12)))
+                                .foregroundStyle(AppColors.metricPrimary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 HStack(alignment: .center, spacing: Spacing.sm) {
@@ -114,9 +172,9 @@ struct InferenceConsoleView: View {
                 }
 
                 HStack(spacing: Spacing.xs) {
-                    metaChip(label: "Adapter", value: provider.adapter ?? "-")
+                    metaChip(label: "Adapter", value: adapterLabel(provider.adapter))
                     metaChip(label: provider.builtin == true ? "内置" : "自定义",
-                             value: provider.hasApiKey == true ? "已配置" : "待配置")
+                             value: apiKeyStatus(for: provider))
                 }
                 .fixedSize(horizontal: false, vertical: true)
             }
@@ -133,7 +191,15 @@ struct InferenceConsoleView: View {
         }
     }
 
-    // MARK: - Custom providers section
+    private func apiKeyStatus(for provider: LLMProviderDTO) -> String {
+        if let override = adminVM.builtinOverride(for: provider.id),
+           override.apiKey == LLMKeySentinel.unchanged || (override.apiKey?.isEmpty == false) {
+            return "override 已存"
+        }
+        return provider.hasApiKey == true ? "已配置" : "待配置"
+    }
+
+    // MARK: - Sections
 
     @ViewBuilder
     private var customProvidersSection: some View {
@@ -146,8 +212,6 @@ struct InferenceConsoleView: View {
             )
         }
     }
-
-    // MARK: - Builtin providers section
 
     @ViewBuilder
     private var builtinProvidersSection: some View {
@@ -213,18 +277,18 @@ struct InferenceConsoleView: View {
                                 .background(Capsule().fill(AppColors.success.opacity(0.15)))
                                 .foregroundStyle(AppColors.success)
                         }
-                        if provider.hasApiKey == true {
+                        if provider.hasApiKey == true || adminVM.builtinOverride(for: provider.id)?.apiKey != nil {
                             Image(systemName: "key.fill")
                                 .font(AppTypography.nano)
                                 .foregroundStyle(AppColors.success)
                         }
                     }
-                    Text(provider.envModel ?? provider.defaultModel ?? "-")
+                    Text(effectiveModel(for: provider))
                         .font(AppTypography.captionMono)
                         .foregroundStyle(AppColors.neutral)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    if let base = provider.envBaseUrl ?? provider.baseUrl, !base.isEmpty {
+                    if let base = effectiveBaseUrl(for: provider), !base.isEmpty {
                         Text(base)
                             .font(AppTypography.nano)
                             .foregroundStyle(AppColors.neutral)
@@ -235,16 +299,7 @@ struct InferenceConsoleView: View {
                 Spacer()
             }
 
-            HStack(spacing: Spacing.xs) {
-                actionButton(icon: "bolt.horizontal.circle", label: probingProviderId == provider.id ? "测试中…" : "测试连接", tint: AppColors.primaryAction, isLoading: probingProviderId == provider.id) {
-                    Task { await runTest(provider) }
-                }
-                if provider.canListModels == true {
-                    actionButton(icon: "list.bullet.rectangle.portrait", label: listingModelsProviderId == provider.id ? "拉取中…" : "模型清单", tint: AppColors.metricTertiary, isLoading: listingModelsProviderId == provider.id) {
-                        Task { await runListModels(provider) }
-                    }
-                }
-            }
+            actionBar(provider: provider, isActive: isActive)
         }
         .padding(Spacing.sm)
         .background(
@@ -254,24 +309,77 @@ struct InferenceConsoleView: View {
     }
 
     @ViewBuilder
-    private func metaChip(label: String, value: String) -> some View {
-        HStack(spacing: Spacing.xxs) {
-            Text(label)
-                .font(AppTypography.nano)
-                .foregroundStyle(AppColors.neutral)
-            Text(value)
-                .font(AppTypography.captionMono)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
+    private func actionBar(provider: LLMProviderDTO, isActive: Bool) -> some View {
+        FlowChipsLayout(spacing: Spacing.xs) {
+            if !isActive {
+                actionChip(
+                    icon: "bolt.fill",
+                    label: settingActiveId == provider.id ? "切换中…" : "启用",
+                    tint: AppColors.success,
+                    isLoading: settingActiveId == provider.id
+                ) {
+                    Task { await setActive(provider) }
+                }
+            }
+
+            if provider.builtin == true && provider.id != "bedrock" {
+                actionChip(
+                    icon: "slider.horizontal.3",
+                    label: "配置",
+                    tint: AppColors.primaryAction
+                ) {
+                    formMode = .configureBuiltin(provider)
+                }
+            }
+
+            if provider.builtin == false {
+                actionChip(
+                    icon: "pencil",
+                    label: "编辑",
+                    tint: AppColors.info
+                ) {
+                    if let dto = adminVM.customProviderDTOs.first(where: { $0.id == provider.id }) {
+                        formMode = .editCustom(dto)
+                    }
+                }
+            }
+
+            actionChip(
+                icon: "bolt.horizontal.circle",
+                label: probingProviderId == provider.id ? "测试中…" : "测试",
+                tint: AppColors.primaryAction,
+                isLoading: probingProviderId == provider.id
+            ) {
+                Task { await runTest(provider) }
+            }
+
+            if provider.canListModels == true {
+                actionChip(
+                    icon: "list.bullet.rectangle.portrait",
+                    label: listingModelsProviderId == provider.id ? "拉取中…" : "模型",
+                    tint: AppColors.metricTertiary,
+                    isLoading: listingModelsProviderId == provider.id
+                ) {
+                    Task { await runListModels(provider) }
+                }
+            }
+
+            if provider.builtin == false && !isActive {
+                actionChip(
+                    icon: "trash",
+                    label: "删除",
+                    tint: AppColors.danger,
+                    role: .destructive
+                ) {
+                    pendingDelete = PendingDelete(id: provider.id, name: provider.name)
+                }
+            }
         }
-        .padding(.horizontal, Spacing.xs)
-        .padding(.vertical, 4)
-        .background(Capsule().fill(AppColors.neutral.opacity(0.08)))
     }
 
     @ViewBuilder
-    private func actionButton(icon: String, label: String, tint: Color, isLoading: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private func actionChip(icon: String, label: String, tint: Color, isLoading: Bool = false, role: ButtonRole? = nil, action: @escaping () -> Void) -> some View {
+        Button(role: role, action: action) {
             HStack(spacing: Spacing.xxs) {
                 if isLoading {
                     ProgressView().scaleEffect(0.7)
@@ -292,7 +400,92 @@ struct InferenceConsoleView: View {
         .disabled(isLoading)
     }
 
+    @ViewBuilder
+    private func metaChip(label: String, value: String) -> some View {
+        HStack(spacing: Spacing.xxs) {
+            Text(label)
+                .font(AppTypography.nano)
+                .foregroundStyle(AppColors.neutral)
+            Text(value)
+                .font(AppTypography.captionMono)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, Spacing.xs)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(AppColors.neutral.opacity(0.08)))
+    }
+
+    // MARK: - Helpers
+
+    private func effectiveModel(for provider: LLMProviderDTO) -> String {
+        if provider.id == adminVM.selectedBackendId {
+            return adminVM.selectedModel ?? provider.envModel ?? provider.defaultModel ?? "-"
+        }
+        if let override = adminVM.builtinOverride(for: provider.id), let m = override.model, !m.isEmpty {
+            return m
+        }
+        return provider.envModel ?? provider.defaultModel ?? "-"
+    }
+
+    private func effectiveBaseUrl(for provider: LLMProviderDTO) -> String? {
+        if let override = adminVM.builtinOverride(for: provider.id), let base = override.baseUrl, !base.isEmpty {
+            return base
+        }
+        return provider.envBaseUrl ?? provider.baseUrl
+    }
+
+    private func adapterLabel(_ adapter: String?) -> String {
+        switch adapter ?? "" {
+        case "open_ai_completions": return "OpenAI Compatible"
+        case "anthropic":           return "Anthropic"
+        case "ollama":              return "Ollama"
+        case "bedrock":             return "AWS Bedrock"
+        case "nearai":              return "NEAR AI"
+        default:                    return adapter ?? "-"
+        }
+    }
+
     // MARK: - Actions
+
+    private func setActive(_ provider: LLMProviderDTO) async {
+        settingActiveId = provider.id
+        defer { settingActiveId = nil }
+        do {
+            try await adminVM.setActiveLLMBackend(id: provider.id)
+            if let m = provider.defaultModel ?? provider.envModel {
+                try? await adminVM.setSelectedModel(m)
+            }
+            await adminVM.load()
+            Haptics.shared.success()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.shared.error()
+        }
+    }
+
+    private func delete(_ id: String) async {
+        pendingDelete = nil
+        do {
+            try await adminVM.removeCustomProvider(id: id)
+            Haptics.shared.success()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.shared.error()
+        }
+    }
+
+    private func selectModel(_ model: String) async {
+        do {
+            try await adminVM.setSelectedModel(model)
+            await adminVM.load()
+            modelListResult = nil
+            Haptics.shared.success()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.shared.error()
+        }
+    }
 
     private func runTest(_ provider: LLMProviderDTO) async {
         probingProviderId = provider.id
@@ -320,6 +513,11 @@ struct InferenceConsoleView: View {
         let provider: LLMProviderDTO
         let models: [String]
     }
+
+    private struct PendingDelete: Identifiable {
+        let id: String
+        let name: String
+    }
 }
 
 // MARK: - Model list sheet
@@ -327,7 +525,9 @@ struct InferenceConsoleView: View {
 private struct ModelListSheet: View {
     let provider: LLMProviderDTO
     let models: [String]
-    let onClose: () -> Void
+    let currentModel: String?
+    let canSelect: Bool
+    let onSelect: (String) -> Void
 
     var body: some View {
         NavigationStack {
@@ -341,28 +541,38 @@ private struct ModelListSheet: View {
                         )
                     } else {
                         ForEach(models, id: \.self) { model in
-                            HStack(spacing: Spacing.xs) {
-                                Image(systemName: "cpu")
-                                    .font(AppTypography.nano)
-                                    .foregroundStyle(AppColors.metricPrimary)
-                                Text(model)
-                                    .font(AppTypography.captionMono)
-                                    .textSelection(.enabled)
-                                Spacer()
+                            Button {
+                                if canSelect { onSelect(model) }
+                            } label: {
+                                HStack(spacing: Spacing.xs) {
+                                    Image(systemName: model == currentModel ? "checkmark.circle.fill" : "cpu")
+                                        .foregroundStyle(model == currentModel ? AppColors.success : AppColors.metricPrimary)
+                                    Text(model)
+                                        .font(AppTypography.captionMono)
+                                        .textSelection(.enabled)
+                                        .foregroundStyle(.primary)
+                                    Spacer()
+                                    if canSelect && model != currentModel {
+                                        Text("设为默认")
+                                            .font(AppTypography.nano)
+                                            .foregroundStyle(AppColors.primaryAction)
+                                    }
+                                }
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 } header: {
                     Text("\(provider.name) · \(models.count) 个模型")
+                } footer: {
+                    Text(canSelect
+                        ? "点击模型可将其设为当前默认（调用 /api/settings/selected_model）。"
+                        : "这个 provider 当前未启用。先在推理页点「启用」，再回来切换模型。")
+                    .font(AppTypography.nano)
                 }
             }
             .navigationTitle("模型清单")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("关闭", action: onClose)
-                }
-            }
         }
     }
 }
