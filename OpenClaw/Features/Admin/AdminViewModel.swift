@@ -247,6 +247,11 @@ final class AdminViewModel {
         let _: AdminUserDTO = try await client.statsPost("api/admin/users", body: body)
         await load()
     }
+
+    func loadPairing(channel: String) async throws -> PairingResponseDTO {
+        let encoded = channel.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? channel
+        return try await client.stats("api/pairing/\(encoded)")
+    }
 }
 
 // MARK: - Agent profile domain type

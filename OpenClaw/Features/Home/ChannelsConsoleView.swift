@@ -9,6 +9,8 @@ struct ChannelsConsoleView: View {
     @State private var removingName: String?
     @State private var actionError: String?
     @State private var showInstall = false
+    @State private var pairingFor: PairingSheetState?
+    @State private var pairingLoading = false
 
     private let columns = [
         GridItem(.flexible(), spacing: Spacing.sm),
@@ -76,6 +78,9 @@ struct ChannelsConsoleView: View {
             Button("好的", role: .cancel) { actionError = nil }
         } message: {
             Text(actionError ?? "")
+        }
+        .sheet(item: $pairingFor) { state in
+            PairingSheet(state: state) { pairingFor = nil }
         }
     }
 
@@ -194,6 +199,27 @@ struct ChannelsConsoleView: View {
             }
 
             HStack(spacing: Spacing.xs) {
+                Button {
+                    Task { await loadPairing(ext) }
+                } label: {
+                    HStack(spacing: Spacing.xxs) {
+                        if pairingLoading && pairingFor == nil {
+                            ProgressView().scaleEffect(0.7)
+                        } else {
+                            Image(systemName: "qrcode")
+                                .font(AppTypography.nano)
+                        }
+                        Text("查看配对")
+                            .font(AppTypography.nano)
+                            .fontWeight(.semibold)
+                    }
+                    .foregroundStyle(AppColors.info)
+                    .padding(.horizontal, Spacing.sm)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(AppColors.info.opacity(0.12)))
+                }
+                .buttonStyle(.plain)
+
                 Button(role: .destructive) {
                     Task { await removeChannel(ext.name) }
                 } label: {
@@ -370,6 +396,27 @@ struct ChannelsConsoleView: View {
         } catch {
             actionError = error.localizedDescription
             Haptics.shared.error()
+        }
+    }
+
+    private func loadPairing(_ ext: ExtensionInfoDTO) async {
+        pairingLoading = true
+        defer { pairingLoading = false }
+        do {
+            let resp = try await adminVM.loadPairing(channel: ext.name)
+            pairingFor = PairingSheetState(
+                channelId: ext.name,
+                channelName: ext.displayName ?? ext.name.capitalized,
+                response: resp,
+                error: nil
+            )
+        } catch {
+            pairingFor = PairingSheetState(
+                channelId: ext.name,
+                channelName: ext.displayName ?? ext.name.capitalized,
+                response: nil,
+                error: error.localizedDescription
+            )
         }
     }
 }

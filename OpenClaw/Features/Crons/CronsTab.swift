@@ -11,6 +11,7 @@ struct CronsTab: View {
     @State private var pendingJobToggle: PendingJobToggle?
     @State private var triggerError: Error?
     @State private var updatingJobIDs: Set<String> = []
+    @State private var summary: RoutinesSummaryDTO?
 
     private var jobs: [CronJob] { vm.data ?? [] }
 
@@ -97,7 +98,10 @@ struct CronsTab: View {
                 Text(err.localizedDescription)
             }
         }
-        .task { vm.start() }
+        .task {
+            vm.start()
+            await loadSummary()
+        }
         .onChange(of: selectedTab) { _, newTab in
             if newTab == .history, historyVM == nil {
                 let hvm = CronHistoryViewModel(
@@ -135,6 +139,13 @@ struct CronsTab: View {
     private var jobsList: some View {
         if !jobs.isEmpty {
             List {
+                if let s = summary {
+                    Section {
+                        routinesSummaryRow(s)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
+                            .listRowBackground(Color.clear)
+                    }
+                }
                 Section("定时任务") {
                 ForEach(jobs) { job in
                 CronJobRow(
@@ -163,7 +174,9 @@ struct CronsTab: View {
             }
             .listStyle(.insetGrouped)
             .refreshable {
-                await vm.refresh()
+                async let r: Void = vm.refresh()
+                async let s: Void = loadSummary()
+                _ = await (r, s)
                 Haptics.shared.refreshComplete()
             }
         } else if vm.isLoading {
@@ -269,6 +282,47 @@ struct CronsTab: View {
             return "这会重新启用“\(toggle.job.name)”并恢复按计划执行。"
         }
         return "这会停用“\(toggle.job.name)”，后续不会再按计划自动运行。"
+    }
+
+    // MARK: - Summary
+
+    private func loadSummary() async {
+        if let s: RoutinesSummaryDTO = try? await client.stats("api/routines/summary") {
+            summary = s
+        }
+    }
+
+    @ViewBuilder
+    private func routinesSummaryRow(_ s: RoutinesSummaryDTO) -> some View {
+        HStack(spacing: Spacing.sm) {
+            summaryTile(icon: "bolt.fill", value: "\(s.enabled)", label: "启用", tint: AppColors.success)
+            summaryTile(icon: "pause.circle", value: "\(s.disabled)", label: "禁用", tint: AppColors.neutral)
+            summaryTile(icon: "questionmark.circle", value: "\(s.unverified)", label: "未验证", tint: AppColors.warning)
+            summaryTile(icon: "exclamationmark.triangle.fill", value: "\(s.failing)", label: "失败", tint: AppColors.danger)
+            summaryTile(icon: "gauge.with.dots.needle.67percent", value: "\(s.runsToday)", label: "今日", tint: AppColors.metricPrimary)
+        }
+    }
+
+    @ViewBuilder
+    private func summaryTile(icon: String, value: String, label: String, tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(AppTypography.nano)
+                .foregroundStyle(tint)
+            Text(value)
+                .font(AppTypography.captionBold)
+                .foregroundStyle(tint)
+                .contentTransition(.numericText())
+            Text(label)
+                .font(AppTypography.nano)
+                .foregroundStyle(AppColors.neutral)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .fill(tint.opacity(0.08))
+        )
     }
 }
 
