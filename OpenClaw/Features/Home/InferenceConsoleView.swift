@@ -46,6 +46,11 @@ struct InferenceConsoleView: View {
             await adminVM.load()
             Haptics.shared.refreshComplete()
         }
+        .task {
+            if adminVM.modelsConfig == nil && !adminVM.isLoading {
+                await adminVM.load()
+            }
+        }
     }
 
     private var subtitle: String {

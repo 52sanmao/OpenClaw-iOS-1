@@ -42,6 +42,11 @@ struct ExtensionsConsoleView: View {
             await vm.load()
             Haptics.shared.refreshComplete()
         }
+        .task {
+            if vm.config == nil && !vm.isLoading {
+                await vm.load()
+            }
+        }
     }
 
     private var subtitle: String {

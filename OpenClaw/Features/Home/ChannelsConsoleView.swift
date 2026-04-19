@@ -46,6 +46,11 @@ struct ChannelsConsoleView: View {
             await adminVM.load()
             Haptics.shared.refreshComplete()
         }
+        .task {
+            if adminVM.channelsStatus == nil && !adminVM.isLoading {
+                await adminVM.load()
+            }
+        }
     }
 
     private var subtitle: String {

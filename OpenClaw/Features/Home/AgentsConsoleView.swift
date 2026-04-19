@@ -47,6 +47,11 @@ struct AgentsConsoleView: View {
             await adminVM.load()
             Haptics.shared.refreshComplete()
         }
+        .task {
+            if adminVM.agents.isEmpty && !adminVM.isLoading {
+                await adminVM.load()
+            }
+        }
     }
 
     private var defaultAgent: AgentInfo? {

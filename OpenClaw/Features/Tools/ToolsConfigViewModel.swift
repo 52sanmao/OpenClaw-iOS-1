@@ -21,62 +21,47 @@ final class ToolsConfigViewModel {
         isLoading = true
         defer { isLoading = false }
         error = nil
-        config = nil
-        mcpServers = []
-        mcpDetails = [:]
-        AppLogStore.shared.append("ToolsConfigViewModel: 开始加载工具配置与 MCP 列表")
+        AppLogStore.shared.append("ToolsConfigViewModel: 开始加载（REST 优先 → stats/exec fallback）")
 
-        // Load tools-list
-        do {
-            AppLogStore.shared.append("ToolsConfigViewModel: 开始读取 tools-list")
-            let response: StatsExecResponse = try await client.statsPost(
-                "stats/exec", body: StatsExecRequest(command: "tools-list")
+        // 1) Try real REST endpoints first.
+        let toolsEnvelope: ExtensionToolListResponseDTO? = try? await client.stats("api/extensions/tools")
+        let extensionsEnvelope: ExtensionListResponseDTO? = try? await client.stats("api/extensions")
+        let permissionsEnvelope: ToolPermissionsResponseDTO? = try? await client.stats("api/settings/tools")
+
+        let allTools = toolsEnvelope?.tools ?? []
+        let extensions = extensionsEnvelope?.extensions ?? []
+
+        if !allTools.isEmpty || !extensions.isEmpty {
+            AppLogStore.shared.append("ToolsConfigViewModel: REST 成功 tools=\(allTools.count) extensions=\(extensions.count) permissions=\(permissionsEnvelope?.tools.count ?? 0)")
+            applyRest(
+                tools: allTools,
+                extensions: extensions,
+                permissions: permissionsEnvelope?.tools ?? []
             )
-            if let data = response.stdout?.data(using: .utf8) {
-                config = ToolsConfig(dto: try JSONDecoder().decode(ToolsListDTO.self, from: data))
-                AppLogStore.shared.append("ToolsConfigViewModel: tools-list 加载成功 groups=\(config?.groups.count ?? 0)")
-            }
-        } catch let gatewayError as GatewayError {
-            AppLogStore.shared.append("ToolsConfigViewModel: tools-list 加载失败 error=\(gatewayError.localizedDescription)")
-            if case .httpError(404, _) = gatewayError {
-                self.error = gatewayError
-                return
-            }
-            self.error = gatewayError
-        } catch {
-            AppLogStore.shared.append("ToolsConfigViewModel: tools-list 加载失败 error=\(error.localizedDescription)")
-            self.error = error
+            return
         }
 
-        // Load mcp-list
-        do {
-            AppLogStore.shared.append("ToolsConfigViewModel: 开始读取 mcp-list")
-            let response: StatsExecResponse = try await client.statsPost(
-                "stats/exec", body: StatsExecRequest(command: "mcp-list")
-            )
-            if let data = response.stdout?.data(using: .utf8) {
-                let dto = try JSONDecoder().decode(McpListDTO.self, from: data)
-                mcpServers = dto.servers.map { McpServer(name: $0.key, config: $0.value) }.sorted { $0.name < $1.name }
-                AppLogStore.shared.append("ToolsConfigViewModel: mcp-list 加载成功 count=\(mcpServers.count)")
-            }
-        } catch {
-            AppLogStore.shared.append("ToolsConfigViewModel: mcp-list 加载失败 error=\(error.localizedDescription)")
-            // Non-fatal — MCP may not be configured
-        }
+        AppLogStore.shared.append("ToolsConfigViewModel: REST 无数据，尝试 stats/exec 回退")
+        await loadLegacyStatsExec()
     }
 
     var unavailableDescription: String {
-        "此页面依赖 /stats/exec 扩展接口。当前 IronClaw 部署未启用该能力，所以无法读取工具白名单、MCP 服务和服务端配置；这不影响聊天主链路与 routines。"
+        "此页面依赖 /api/extensions、/api/extensions/tools、/api/settings/tools（或历史 /stats/exec）。当前网关均未返回，但聊天主链路与 routines 不受影响。"
     }
 
-    /// Lazy load — only when user expands MCP section.
+    /// Lazy load — kept for compatibility; REST path populates mcpDetails inline.
     func loadMcpTools() async {
         guard !isLoadingMcpTools && mcpDetails.isEmpty else { return }
         isLoadingMcpTools = true
         defer { isLoadingMcpTools = false }
 
+        if let envelope: ExtensionListResponseDTO = try? await client.stats("api/extensions") {
+            applyMcpFromRest(envelope.extensions)
+            if !mcpDetails.isEmpty { return }
+        }
+
         do {
-            AppLogStore.shared.append("ToolsConfigViewModel: 开始读取 mcp-tools")
+            AppLogStore.shared.append("ToolsConfigViewModel: 开始读取 mcp-tools（fallback）")
             let response: StatsExecResponse = try await client.statsPost(
                 "stats/exec", body: StatsExecRequest(command: "mcp-tools")
             )
@@ -89,11 +74,153 @@ final class ToolsConfigViewModel {
                         error: serverTools.error
                     )
                 }
-                AppLogStore.shared.append("ToolsConfigViewModel: mcp-tools 加载成功 servers=\(mcpDetails.count)")
             }
         } catch {
-            AppLogStore.shared.append("ToolsConfigViewModel: mcp-tools 加载失败 error=\(error.localizedDescription)")
-            // Non-fatal
+            AppLogStore.shared.append("ToolsConfigViewModel: mcp-tools 回退失败 \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - REST mapping
+
+    private func applyRest(
+        tools: [ExtensionToolDTO],
+        extensions: [ExtensionInfoDTO],
+        permissions: [ToolPermissionEntryDTO]
+    ) {
+        let allowList = permissions.filter { $0.currentState == "allow_always" }.map { $0.name }.sorted()
+        let denyList = permissions.filter { $0.currentState == "deny_always" }.map { $0.name }.sorted()
+
+        let grouped = Dictionary(grouping: tools, by: { groupKey(for: $0.name) })
+
+        let iconMap: [String: (name: String, icon: String)] = [
+            "runtime":    ("运行时",   "terminal"),
+            "file":       ("文件",     "doc.text"),
+            "web":        ("网络",     "globe"),
+            "ui":         ("界面",     "macwindow"),
+            "messaging":  ("消息",     "message"),
+            "schedule":   ("自动化",   "clock.arrow.circlepath"),
+            "memory":     ("记忆",     "brain"),
+            "session":    ("会话",     "person.2"),
+            "skill":      ("技能",     "bolt.circle"),
+            "settings":   ("设置",     "slider.horizontal.3"),
+            "thread":     ("线程",     "text.bubble"),
+            "other":      ("其他",     "puzzlepiece")
+        ]
+
+        let groups: [ToolsConfig.ToolGroup] = grouped.keys.sorted().map { key in
+            let info = iconMap[key] ?? (name: key.capitalized, icon: "puzzlepiece")
+            let items = (grouped[key] ?? []).map { tool in
+                ToolsConfig.NativeTool(id: tool.name, name: tool.name, description: tool.description ?? "")
+            }
+            return ToolsConfig.ToolGroup(id: key, name: info.name, icon: info.icon, tools: items)
+        }
+
+        let profile: String = inferProfile(permissions: permissions)
+        let mcpNames = extensions.filter { $0.kind.lowercased() == "mcp_server" }.map(\.name)
+
+        config = ToolsConfig(
+            profile: profile,
+            allow: allowList,
+            deny: denyList,
+            mcpServerNames: mcpNames,
+            groups: groups
+        )
+
+        applyMcpFromRest(extensions)
+    }
+
+    private func applyMcpFromRest(_ extensions: [ExtensionInfoDTO]) {
+        let mcp = extensions.filter { $0.kind.lowercased() == "mcp_server" }
+        mcpServers = mcp
+            .map { McpServer(name: $0.name, runtime: $0.url ?? $0.displayName ?? "mcp") }
+            .sorted { $0.name < $1.name }
+
+        var details: [String: McpServerDetail] = [:]
+        for ext in mcp {
+            details[ext.name] = McpServerDetail(
+                status: ext.active ? "ok" : (ext.activationStatus?.lowercased() ?? "stopped"),
+                tools: (ext.tools ?? []).map { McpToolsDTO.Tool(name: $0, description: nil) },
+                error: ext.activationError
+            )
+        }
+        mcpDetails = details
+    }
+
+    private func groupKey(for toolName: String) -> String {
+        let lower = toolName.lowercased()
+        if let prefix = lower.components(separatedBy: "_").first, !prefix.isEmpty {
+            let known: Set<String> = [
+                "runtime", "file", "web", "ui", "messaging",
+                "schedule", "memory", "session", "skill", "settings", "thread"
+            ]
+            if known.contains(prefix) { return prefix }
+        }
+        return "other"
+    }
+
+    private func inferProfile(permissions: [ToolPermissionEntryDTO]) -> String {
+        let allowCount = permissions.filter { $0.currentState == "allow_always" }.count
+        let totalCount = permissions.count
+        if totalCount == 0 { return "unknown" }
+        let ratio = Double(allowCount) / Double(totalCount)
+        if ratio >= 0.8 { return "full" }
+        if ratio >= 0.4 { return "coding" }
+        if ratio >= 0.15 { return "messaging" }
+        return "minimal"
+    }
+
+    // MARK: - Legacy fallback
+
+    private func loadLegacyStatsExec() async {
+        do {
+            let response: StatsExecResponse = try await client.statsPost(
+                "stats/exec", body: StatsExecRequest(command: "tools-list")
+            )
+            if let data = response.stdout?.data(using: .utf8) {
+                config = ToolsConfig(dto: try JSONDecoder().decode(ToolsListDTO.self, from: data))
+            }
+        } catch let gatewayError as GatewayError {
+            AppLogStore.shared.append("ToolsConfigViewModel: tools-list 回退失败 \(gatewayError.localizedDescription)")
+            if case .httpError(404, _) = gatewayError {
+                self.error = gatewayError
+                return
+            }
+            self.error = gatewayError
+        } catch {
+            AppLogStore.shared.append("ToolsConfigViewModel: tools-list 回退失败 \(error.localizedDescription)")
+            self.error = error
+        }
+
+        do {
+            let response: StatsExecResponse = try await client.statsPost(
+                "stats/exec", body: StatsExecRequest(command: "mcp-list")
+            )
+            if let data = response.stdout?.data(using: .utf8) {
+                let dto = try JSONDecoder().decode(McpListDTO.self, from: data)
+                mcpServers = dto.servers.map { McpServer(name: $0.key, config: $0.value) }.sorted { $0.name < $1.name }
+            }
+        } catch {
+            AppLogStore.shared.append("ToolsConfigViewModel: mcp-list 回退失败 \(error.localizedDescription)")
+        }
+    }
+}
+
+// MARK: - ToolsConfig / McpServer memberwise inits (REST path)
+
+extension ToolsConfig {
+    init(profile: String, allow: [String], deny: [String], mcpServerNames: [String], groups: [ToolGroup]) {
+        self.profile = profile
+        self.allow = allow
+        self.deny = deny
+        self.mcpServerNames = mcpServerNames
+        self.groups = groups
+    }
+}
+
+extension McpServer {
+    init(name: String, runtime: String) {
+        self.id = name
+        self.name = name
+        self.runtime = runtime
     }
 }
