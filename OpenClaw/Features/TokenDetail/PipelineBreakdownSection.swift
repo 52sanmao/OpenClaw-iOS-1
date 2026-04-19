@@ -77,13 +77,13 @@ private struct PipelineRow: View {
             .frame(height: 6)
 
             if let runCount, runCount > 0 {
-                Text("\(runCount) runs")
+                Text("\(runCount) 次运行")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
             }
         }
         .padding(.vertical, Spacing.xxs)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(Formatters.tokens(tokens)), \(String(format: "%.0f percent", percent * 100))\(runCount.map { ", \($0) runs" } ?? "")")
+        .accessibilityLabel("\(name)，\(Formatters.tokens(tokens))，占比 \(String(format: "%.0f", percent * 100))%\(runCount.map { "，\($0) 次运行" } ?? "")")
     }
 }

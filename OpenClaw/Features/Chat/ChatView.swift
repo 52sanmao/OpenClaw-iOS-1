@@ -453,72 +453,129 @@ private struct MessageBubble: View {
     private var isUser: Bool { message.role == .user }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
+        HStack(alignment: .bottom, spacing: Spacing.sm) {
             if isUser {
-                Spacer(minLength: 0)
+                Spacer(minLength: 56)
             }
 
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 8) {
-                if message.isStreaming && message.content.isEmpty {
-                    HStack(spacing: 8) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Circle()
-                                .fill(Color(.systemGray3))
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                    .padding(12)
-                } else {
-                    bubbleContent
+            VStack(alignment: isUser ? .trailing : .leading, spacing: Spacing.xs) {
+                if message.isStreaming && !isUser {
+                    Text("灵控")
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.neutral)
+                        .padding(.leading, Spacing.xs)
                 }
 
-                if message.isStreaming {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                        Text("正在输入…")
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        Text(message.timestamp, style: .time)
-                            .font(.caption2)
-                            .foregroundColor(.gray)
-                        if !isUser {
-                            Button {
-                                Formatters.copyToClipboard(message.content, copied: $copied)
-                            } label: {
-                                Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                                    .font(.caption2)
-                                    .foregroundStyle(copied ? AppColors.success : AppColors.neutral)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
+                bubbleBody
+                    .frame(maxWidth: 320, alignment: isUser ? .trailing : .leading)
+
+                messageMeta
             }
             .frame(maxWidth: .infinity, alignment: isUser ? .trailing : .leading)
 
             if !isUser {
-                Spacer(minLength: 0)
+                Spacer(minLength: 56)
             }
         }
     }
 
     @ViewBuilder
-    private var bubbleContent: some View {
-        if isUser {
-            Text(message.content)
-                .font(.system(size: 15))
-                .padding(12)
-                .background(Color(.systemGray5))
-                .foregroundColor(Color(.label))
-                .cornerRadius(16)
+    private var bubbleBody: some View {
+        if message.isStreaming && message.content.isEmpty {
+            bubbleSurface {
+                HStack(spacing: Spacing.xs) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Circle()
+                            .fill(AppColors.neutral.opacity(0.45))
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .frame(minHeight: 22)
+            }
+        } else if isUser {
+            bubbleSurface {
+                Text(message.content)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.white)
+                    .textSelection(.enabled)
+            }
         } else {
-            Markdown(message.content)
-                .markdownTheme(.openClaw)
-                .textSelection(.enabled)
+            bubbleSurface {
+                Markdown(message.content)
+                    .markdownTheme(.openClaw)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var messageMeta: some View {
+        if message.isStreaming {
+            HStack(spacing: Spacing.xxs) {
+                ProgressView()
+                    .scaleEffect(0.7)
+                Text("正在输入…")
+                    .font(AppTypography.nano)
+                    .foregroundStyle(AppColors.neutral)
+            }
+            .padding(.horizontal, Spacing.xs)
+        } else {
+            HStack(spacing: Spacing.xs) {
+                Text(message.timestamp, style: .time)
+                    .font(AppTypography.nano)
+                    .foregroundStyle(AppColors.neutral)
+
+                if !isUser {
+                    Button {
+                        Formatters.copyToClipboard(message.content, copied: $copied)
+                    } label: {
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                            .font(AppTypography.nano)
+                            .foregroundStyle(copied ? AppColors.success : AppColors.neutral)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(copied ? "已复制" : "复制消息")
+                }
+            }
+            .padding(.horizontal, Spacing.xs)
+        }
+    }
+
+    @ViewBuilder
+    private func bubbleSurface<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, Spacing.sm + Spacing.xxs)
+            .padding(.vertical, Spacing.sm)
+            .background(bubbleBackground)
+            .clipShape(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: AppRadius.card,
+                    bottomLeadingRadius: isUser ? AppRadius.card : AppRadius.sm,
+                    bottomTrailingRadius: isUser ? AppRadius.sm : AppRadius.card,
+                    topTrailingRadius: AppRadius.card,
+                    style: .continuous
+                )
+            )
+            .overlay {
+                if !isUser {
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: AppRadius.card,
+                        bottomLeadingRadius: AppRadius.sm,
+                        bottomTrailingRadius: AppRadius.card,
+                        topTrailingRadius: AppRadius.card,
+                        style: .continuous
+                    )
+                    .strokeBorder(Color(uiColor: .separator).opacity(0.16), lineWidth: 1)
+                }
+            }
+            .shadow(color: Color.black.opacity(isUser ? 0.08 : 0.05), radius: 10, x: 0, y: 4)
+    }
+
+    private var bubbleBackground: some ShapeStyle {
+        if isUser {
+            AppColors.primaryAction
+        } else {
+            Color(uiColor: .systemBackground)
         }
     }
 }

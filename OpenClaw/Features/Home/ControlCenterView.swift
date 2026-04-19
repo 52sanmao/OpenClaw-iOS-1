@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ControlCenterView: View {
     let modules: [ControlCenterModule]
-    let draggingModuleID: String?
-    let onDragHandlePress: ((String) -> Void)?
+    let isDragging: Bool
+    let onDragHandlePress: () -> Void
 
     private let columns = [
         GridItem(.flexible(), spacing: Spacing.sm),
@@ -25,11 +25,7 @@ struct ControlCenterView: View {
                         NavigationLink {
                             module.destination
                         } label: {
-                            ControlCenterTile(
-                                module: module,
-                                isDragging: draggingModuleID == module.id,
-                                onDragHandlePress: onDragHandlePress
-                            )
+                            ControlCenterTile(module: module)
                         }
                         .buttonStyle(.plain)
                     }
@@ -54,33 +50,31 @@ struct ControlCenterView: View {
                     .foregroundStyle(AppColors.neutral)
             }
             Spacer(minLength: Spacing.sm)
-            VStack(alignment: .trailing, spacing: Spacing.xxs) {
-                Button {
-                    onDragHandlePress?("settings-modules")
-                } label: {
-                    Image(systemName: draggingModuleID == "settings-modules" ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.circle")
+            Button(action: onDragHandlePress) {
+                VStack(alignment: .trailing, spacing: Spacing.xxs) {
+                    Image(systemName: isDragging ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.circle")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.primaryAction)
+                    Text("按住拖动")
+                        .font(AppTypography.nano)
+                        .foregroundStyle(AppColors.primaryAction)
+                    Text("\(modules.count) 个模块")
+                        .font(AppTypography.captionBold)
+                        .foregroundStyle(AppColors.primaryAction)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("长按拖动控制中心")
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.35)
-                        .onEnded { _ in onDragHandlePress?("settings-modules") }
+                .padding(.horizontal, Spacing.sm)
+                .padding(.vertical, Spacing.xs)
+                .background(
+                    Capsule()
+                        .fill(AppColors.primaryAction.opacity(0.08))
                 )
-                Text("\(modules.count) 个模块")
-                    .font(AppTypography.captionBold)
-                    .foregroundStyle(AppColors.primaryAction)
-                Text("控制台总览")
-                    .font(AppTypography.nano)
-                    .foregroundStyle(AppColors.neutral)
             }
-            .padding(.horizontal, Spacing.sm)
-            .padding(.vertical, Spacing.xs)
-            .background(
-                Capsule()
-                    .fill(AppColors.primaryAction.opacity(0.08))
+            .buttonStyle(.plain)
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.2)
+                    .onEnded { _ in onDragHandlePress() }
             )
+            .accessibilityLabel("长按拖动控制中心卡片")
         }
     }
 
@@ -125,8 +119,6 @@ struct ControlCenterModule: Identifiable {
 
 private struct ControlCenterTile: View {
     let module: ControlCenterModule
-    let isDragging: Bool
-    let onDragHandlePress: ((String) -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
@@ -140,19 +132,9 @@ private struct ControlCenterTile: View {
                         .foregroundStyle(module.tint)
                 }
                 Spacer(minLength: Spacing.xs)
-                Button {
-                    onDragHandlePress?(module.id)
-                } label: {
-                    Image(systemName: isDragging ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.circle")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(module.tint)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("长按拖动\(module.title)")
-                .simultaneousGesture(
-                    LongPressGesture(minimumDuration: 0.35)
-                        .onEnded { _ in onDragHandlePress?(module.id) }
-                )
+                Image(systemName: "arrow.up.right.circle.fill")
+                    .font(AppTypography.caption)
+                    .foregroundStyle(module.tint.opacity(0.9))
             }
 
             HStack {

@@ -8,7 +8,6 @@ struct TokenDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
-                // Period picker
                 Picker("周期", selection: $vm.selectedPeriod) {
                     ForEach(TokenPeriod.allCases) { period in
                         Text(period.label).tag(period)
@@ -23,24 +22,24 @@ struct TokenDetailView: View {
                 }
 
                 if let usage = vm.data {
-                    // Section 1: Summary grid
+                    section("时间线") {
+                        TokenTimelinePanel(usage: usage, period: vm.selectedPeriod)
+                    }
+
                     section("概览") {
                         TokenSummaryGrid(totals: usage.totals)
                     }
 
-                    // Section 2: Charts
-                    section("图表") {
+                    section("更多图表") {
                         TokenChartSection(usage: usage)
                     }
 
-                    // Section 3: By Model
                     if !usage.byModel.isEmpty {
                         section("按模型查看（\(usage.byModel.count)）") {
                             ModelDetailSection(models: usage.byModel)
                         }
                     }
 
-                    // Section 4: By Pipeline
                     section("按流水线查看") {
                         PipelineBreakdownSection(
                             breakdown: pipelineVM?.breakdown,
@@ -84,12 +83,12 @@ struct TokenDetailView: View {
             Haptics.shared.refreshComplete()
         }
         .task {
-            if vm.data == nil { vm.start() }
+            if vm.data == nil {
+                await vm.refresh()
+            }
             await loadPipelines()
         }
     }
-
-    // MARK: - Helpers
 
     private func loadPipelines() async {
         guard let usage = vm.data else { return }

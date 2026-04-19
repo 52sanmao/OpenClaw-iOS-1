@@ -65,7 +65,7 @@ struct HomeView: View {
                             .zIndex(draggingCard == card.id ? 1 : 0)
                             .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.84), value: draggingCard)
                             .animation(.interactiveSpring(response: 0.24, dampingFraction: 0.84), value: draggingOffset)
-                            .gesture(cardDragGesture(for: card.id), including: armedDragCard == card.id ? .gesture : .subviews)
+                            .highPriorityGesture(cardDragGesture(for: card.id), including: armedDragCard == card.id ? .gesture : .subviews)
                     }
 
                     if systemVM.data == nil && tokenUsageVM.data == nil {
@@ -147,7 +147,7 @@ struct HomeView: View {
                             Image(systemName: "wrench.and.screwdriver")
                         }
                         NavigationLink {
-                            SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM)
+                            SettingsConsoleView(accountStore: accountStore, client: client, memoryVM: memoryVM, initialSection: .network)
                         } label: {
                             Image(systemName: "slider.horizontal.3")
                         }
@@ -263,31 +263,29 @@ struct HomeView: View {
         lastReorderStep = step
     }
 
+    private func beginDragging(_ id: HomeCardID) {
+        armedDragCard = id
+        draggingCard = id
+        draggingOffset = 0
+        lastReorderStep = 0
+        isDraggingActive = true
+        Haptics.shared.refreshComplete()
+    }
+
     private func cardDragGesture(for id: HomeCardID) -> some Gesture {
-        LongPressGesture(minimumDuration: 0.18)
-            .sequenced(before: DragGesture(minimumDistance: 8, coordinateSpace: .local))
+        DragGesture(minimumDistance: 6, coordinateSpace: .local)
             .onChanged { value in
                 guard armedDragCard == id else { return }
-                switch value {
-                case .second(true, let drag?):
-                    if draggingCard != id {
-                        draggingCard = id
-                        draggingOffset = 0
-                        lastReorderStep = 0
-                        isDraggingActive = true
-                        Haptics.shared.refreshComplete()
-                    }
-                    let translation = drag.translation.height
-                    draggingOffset = translation * 0.55
-                    reorderCard(id, translation: translation)
-                default:
-                    break
+                if draggingCard != id || !isDraggingActive {
+                    beginDragging(id)
                 }
+                let translation = value.translation.height
+                draggingOffset = translation * 0.55
+                reorderCard(id, translation: translation)
             }
             .onEnded { _ in
-                defer {
-                    armedDragCard = nil
-                }
+                guard armedDragCard == id else { return }
+                armedDragCard = nil
                 guard draggingCard == id else {
                     isDraggingActive = false
                     lastReorderStep = 0
@@ -330,15 +328,11 @@ struct HomeView: View {
         }
     }
 
-    private var connectionDiagnosticsCard: some View {
-        EmptyView()
-    }
-
     private var settingsModulesCard: some View {
         ControlCenterView(
             modules: controlCenterModules,
-            draggingModuleID: armedDragCard == .settingsModules ? "settings-modules" : nil,
-            onDragHandlePress: { _ in
+            isDragging: armedDragCard == .settingsModules || draggingCard == .settingsModules,
+            onDragHandlePress: {
                 armedDragCard = .settingsModules
             }
         )

@@ -19,7 +19,7 @@ final class PipelineTokenViewModel {
         isLoading = true
         error = nil
 
-        let cutoff = Self.periodStart(for: period)
+        let range = period.range(reference: Date(), calendar: .current)
 
         do {
             let results = try await withThrowingTaskGroup(of: (String, Int, Int).self) { group in
@@ -31,7 +31,7 @@ final class PipelineTokenViewModel {
                                 limit: Self.runsPerJob,
                                 offset: 0
                             )
-                            let filtered = page.runs.filter { $0.runAt >= cutoff }
+                            let filtered = page.runs.filter { range.contains($0.runAt) }
                             let tokens = filtered.reduce(0) { $0 + $1.totalTokens }
                             return (jobId, tokens, filtered.count)
                         }
@@ -78,18 +78,5 @@ final class PipelineTokenViewModel {
             self.error = error
         }
         isLoading = false
-    }
-
-    private static func periodStart(for period: TokenPeriod) -> Date {
-        let cal = Calendar.current
-        let now = Date()
-        switch period {
-        case .today:
-            return cal.startOfDay(for: now)
-        case .yesterday:
-            return cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: now) ?? now)
-        case .week:
-            return cal.startOfDay(for: cal.date(byAdding: .day, value: -7, to: now) ?? now)
-        }
     }
 }

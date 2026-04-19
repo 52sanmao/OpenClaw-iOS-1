@@ -13,7 +13,6 @@ struct TokenUsageCard: View {
         ) {
             if let usage = vm.data {
                 VStack(spacing: Spacing.sm) {
-                    // Period picker
                     Picker("周期", selection: $vm.selectedPeriod) {
                         ForEach(TokenPeriod.allCases) { period in
                             Text(period.label).tag(period)
@@ -24,7 +23,6 @@ struct TokenUsageCard: View {
                         Task { await vm.refresh() }
                     }
 
-                    // Hero row: total + cost
                     HStack(alignment: .bottom) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(Formatters.tokens(usage.totals.totalTokens))
@@ -48,18 +46,15 @@ struct TokenUsageCard: View {
                         }
                     }
 
-                    // Token breakdown bar (input/output/cache)
-                    TokenUsageBar(totals: usage.totals)
+                    TokenTimelinePanel(usage: usage, period: vm.selectedPeriod, compact: true)
 
-                    // Stats grid
+                    TokenUsageBar(totals: usage.totals)
                     TokenStatsGrid(totals: usage.totals)
 
-                    // Model breakdown — behind show more
                     if !usage.byModel.isEmpty {
                         ModelBreakdownSection(models: usage.byModel)
                     }
 
-                    // Detail navigation
                     if let repo = detailRepository {
                         NavigationLink {
                             TokenDetailView(vm: vm, detailRepository: repo)
@@ -90,8 +85,6 @@ struct TokenUsageCard: View {
         }
     }
 }
-
-// MARK: - Token Usage Bar
 
 private struct TokenUsageBar: View {
     let totals: TokenUsage.Totals
@@ -127,8 +120,6 @@ private struct TokenUsageBar: View {
     }
 }
 
-// MARK: - Stats Grid
-
 private struct TokenStatsGrid: View {
     let totals: TokenUsage.Totals
 
@@ -161,8 +152,6 @@ private struct StatPill: View {
         }
     }
 }
-
-// MARK: - Model Breakdown (collapsible)
 
 private struct ModelBreakdownSection: View {
     let models: [TokenUsage.ModelUsage]
@@ -199,7 +188,7 @@ private struct ModelBreakdownSection: View {
                             .font(AppTypography.captionMono)
                             .foregroundStyle(AppColors.metricPrimary)
 
-                        Text("\(model.requestCount) req")
+                        Text("\(model.requestCount) 次请求")
                             .font(AppTypography.micro)
                             .foregroundStyle(AppColors.neutral)
                     }
