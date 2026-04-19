@@ -5,9 +5,7 @@ struct SettingsConsoleView: View {
     let client: GatewayClientProtocol
     let memoryVM: MemoryViewModel
 
-    @State private var toolsVM: ToolsConfigViewModel
     @State private var adminVM: AdminViewModel
-    @State private var commandsVM: CommandsViewModel
     @State private var selectedSection: SettingsConsoleSection
     @State private var debugEnabled: Bool = AppDebugSettings.debugEnabled
     @State private var logLevel: String?
@@ -17,9 +15,7 @@ struct SettingsConsoleView: View {
         self.accountStore = accountStore
         self.client = client
         self.memoryVM = memoryVM
-        _toolsVM = State(initialValue: ToolsConfigViewModel(client: client))
         _adminVM = State(initialValue: AdminViewModel(client: client))
-        _commandsVM = State(initialValue: CommandsViewModel(client: client, cronRepository: RemoteCronRepository(client: client), cronDetailRepository: RemoteCronDetailRepository(client: client)))
         _selectedSection = State(initialValue: initialSection)
     }
 
@@ -32,8 +28,6 @@ struct SettingsConsoleView: View {
                 networkSection
             case .agent:
                 agentSection
-            case .commands:
-                commandsSection
             case .users:
                 usersSection
             }
@@ -50,19 +44,15 @@ struct SettingsConsoleView: View {
             }
         }
         .task {
-            if toolsVM.config == nil && !toolsVM.isLoading {
-                await toolsVM.load()
-            }
             if adminVM.agents.isEmpty && !adminVM.isLoading {
                 await adminVM.load()
             }
             await loadLogLevel()
         }
         .refreshable {
-            async let tools: Void = toolsVM.load()
             async let admin: Void = adminVM.load()
             async let level: Void = loadLogLevel()
-            _ = await (tools, admin, level)
+            _ = await (admin, level)
             Haptics.shared.refreshComplete()
         }
     }
@@ -200,60 +190,9 @@ struct SettingsConsoleView: View {
                 } label: {
                     settingsRow(
                         title: "连接与诊断",
-                        subtitle: "测试连接、查看诊断详情与账号切换",
+                        subtitle: "测试连接、查看诊断详情、切换与添加本地账号",
                         icon: "heart.text.square.fill",
                         tint: AppColors.info
-                    )
-                }
-
-                NavigationLink {
-                    ToolsConfigView(client: client)
-                } label: {
-                    settingsRow(
-                        title: "工具配置",
-                        subtitle: "查看原生工具、权限白名单与链路状态",
-                        icon: "wrench.and.screwdriver.fill",
-                        tint: AppColors.metricPrimary
-                    )
-                }
-            }
-        }
-    }
-
-    private var commandsSection: some View {
-        Group {
-            Section("命令中心") {
-                navigationSummaryRow(
-                    title: "快捷命令",
-                    value: "\(QuickCommand.visibleCount) 个",
-                    detail: "重启、体检、日志尾部、状态、安全、备份",
-                    icon: "terminal.fill",
-                    tint: AppColors.metricWarm
-                )
-                navigationSummaryRow(
-                    title: "完整命令集",
-                    value: "\(QuickCommand.all.count) 个",
-                    detail: "包含定时任务暂停、渠道检查、索引重建等运维动作",
-                    icon: "switch.2",
-                    tint: AppColors.primaryAction
-                )
-            }
-
-            Section {
-                CommandsCard(vm: commandsVM)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowBackground(Color.clear)
-            }
-
-            Section("深度管理") {
-                NavigationLink {
-                    CommandsDetailView(commandsVM: commandsVM, client: client)
-                } label: {
-                    settingsRow(
-                        title: "命令与管理",
-                        subtitle: "查看全部命令、模型配置与频道状态",
-                        icon: "slider.horizontal.below.rectangle",
-                        tint: AppColors.metricHighlight
                     )
                 }
             }
@@ -443,7 +382,6 @@ struct SettingsConsoleView: View {
 enum SettingsConsoleSection: String, CaseIterable, Identifiable {
     case network
     case agent
-    case commands
     case users
 
     var id: String { rawValue }
@@ -452,7 +390,6 @@ enum SettingsConsoleSection: String, CaseIterable, Identifiable {
         switch self {
         case .network: "网络"
         case .agent: "代理"
-        case .commands: "命令"
         case .users: "用户"
         }
     }
@@ -461,8 +398,7 @@ enum SettingsConsoleSection: String, CaseIterable, Identifiable {
         switch self {
         case .network: "连接测试、诊断链路与调试状态"
         case .agent: "代理配置、系统提示词与行为设置"
-        case .commands: "快捷运维命令与完整管理入口"
-        case .users: "账号切换、调试与连接测试"
+        case .users: "本地网关账号与连接测试"
         }
     }
 
@@ -470,7 +406,6 @@ enum SettingsConsoleSection: String, CaseIterable, Identifiable {
         switch self {
         case .network: "network"
         case .agent: "person.crop.circle.fill"
-        case .commands: "terminal.fill"
         case .users: "person.crop.circle.fill"
         }
     }
