@@ -142,63 +142,51 @@ struct AgentSettingsView: View {
     private func agentRow(_ agent: AgentInfo) -> some View {
         let isActive = agent.id == adminVM.agent?.id
 
-        Button {
-            Task { await switchAgent(agent) }
-        } label: {
-            HStack(spacing: Spacing.sm) {
-                ZStack {
-                    Circle()
-                        .fill((isActive ? AppColors.success : AppColors.neutral).opacity(0.14))
-                        .frame(width: 36, height: 36)
-                    Text(agent.emoji)
-                        .font(.system(size: 20))
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: Spacing.xxs) {
-                        Text(agent.name)
-                            .font(AppTypography.body)
-                            .fontWeight(.medium)
-                            .lineLimit(1)
-                        if isActive {
-                            Text("使用中")
-                                .font(AppTypography.nano)
-                                .padding(.horizontal, Spacing.xxs)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(AppColors.success.opacity(0.15)))
-                                .foregroundStyle(AppColors.success)
-                        }
-                        if agent.isDefault {
-                            Text("默认")
-                                .font(AppTypography.nano)
-                                .padding(.horizontal, Spacing.xxs)
-                                .padding(.vertical, 1)
-                                .background(Capsule().fill(AppColors.info.opacity(0.15)))
-                                .foregroundStyle(AppColors.info)
-                        }
-                    }
-                    if let model = agent.model {
-                        Text(model)
+        HStack(spacing: Spacing.sm) {
+            ZStack {
+                Circle()
+                    .fill((isActive ? AppColors.success : AppColors.neutral).opacity(0.14))
+                    .frame(width: 36, height: 36)
+                Text(agent.emoji)
+                    .font(.system(size: 20))
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: Spacing.xxs) {
+                    Text(agent.name)
+                        .font(AppTypography.body)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    if isActive {
+                        Text("使用中")
                             .font(AppTypography.nano)
-                            .foregroundStyle(AppColors.neutral)
-                            .lineLimit(1)
+                            .padding(.horizontal, Spacing.xxs)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(AppColors.success.opacity(0.15)))
+                            .foregroundStyle(AppColors.success)
+                    }
+                    if agent.isDefault {
+                        Text("默认")
+                            .font(AppTypography.nano)
+                            .padding(.horizontal, Spacing.xxs)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(AppColors.info.opacity(0.15)))
+                            .foregroundStyle(AppColors.info)
                     }
                 }
-                Spacer()
-                if !isActive {
-                    Text("切换")
+                if let model = agent.model {
+                    Text(model)
                         .font(AppTypography.nano)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColors.primaryAction)
+                        .foregroundStyle(AppColors.neutral)
+                        .lineLimit(1)
                 }
             }
-            .padding(Spacing.sm)
-            .background(
-                RoundedRectangle(cornerRadius: AppRadius.md)
-                    .fill(isActive ? AppColors.success.opacity(0.05) : Color(.systemGroupedBackground))
-            )
+            Spacer()
         }
-        .buttonStyle(.plain)
-        .disabled(isActive)
+        .padding(Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: AppRadius.md)
+                .fill(isActive ? AppColors.success.opacity(0.05) : Color(.systemGroupedBackground))
+        )
     }
 
     // MARK: - Behavior
@@ -277,18 +265,5 @@ struct AgentSettingsView: View {
             RoundedRectangle(cornerRadius: AppRadius.md)
                 .fill(Color(.systemGroupedBackground))
         )
-    }
-
-    // MARK: - Actions
-
-    private func switchAgent(_ agent: AgentInfo) async {
-        do {
-            try await adminVM.setActiveAgent(id: agent.id)
-            await adminVM.load()
-            Haptics.shared.success()
-        } catch {
-            saveError = error.localizedDescription
-            Haptics.shared.error()
-        }
     }
 }
