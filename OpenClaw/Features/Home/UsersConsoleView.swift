@@ -48,7 +48,6 @@ struct UsersConsoleView: View {
                 statsStrip
                 filtersBar
                 usersListSection
-                gatewayAccountsCard
             }
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.sm)
@@ -482,68 +481,6 @@ struct UsersConsoleView: View {
         case "member":  return AppColors.metricPrimary
         default:        return AppColors.info
         }
-    }
-
-    // MARK: - Gateway accounts (local)
-
-    @ViewBuilder
-    private var gatewayAccountsCard: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(spacing: Spacing.xs) {
-                Image(systemName: "iphone.gen3")
-                    .foregroundStyle(AppColors.metricHighlight)
-                Text("本地网关账号")
-                    .font(AppTypography.captionBold)
-                Spacer()
-                Text("\(accountStore.accounts.count) 个")
-                    .font(AppTypography.micro)
-                    .foregroundStyle(AppColors.neutral)
-            }
-
-            if let active = accountStore.activeAccount {
-                HStack(spacing: Spacing.sm) {
-                    ZStack {
-                        Circle()
-                            .fill(AppColors.success.opacity(0.14))
-                            .frame(width: 34, height: 34)
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColors.success)
-                    }
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(active.name)
-                            .font(AppTypography.body)
-                            .fontWeight(.medium)
-                        Text(active.displayURL)
-                            .font(AppTypography.nano)
-                            .foregroundStyle(AppColors.neutral)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                    Spacer()
-                    Text("使用中")
-                        .font(AppTypography.nano)
-                        .padding(.horizontal, Spacing.xs)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(AppColors.success.opacity(0.15)))
-                        .foregroundStyle(AppColors.success)
-                }
-                .padding(Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: AppRadius.md)
-                        .fill(Color(.systemGroupedBackground))
-                )
-            }
-
-            Text("新增或切换本地连接请到「设置 · 连接与诊断」。")
-                .font(AppTypography.nano)
-                .foregroundStyle(AppColors.neutral)
-        }
-        .padding(Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
-                .fill(Color(.systemBackground))
-        )
     }
 
     // MARK: - Create user sheet
