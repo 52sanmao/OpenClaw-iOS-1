@@ -1,20 +1,27 @@
 import SwiftUI
+import UIKit
 
-/// 用户管理控制台 — 对接 Web 的「用户管理」：
-///   - /api/admin/users：管理员用户列表（含成本与活跃时间）
-///   - POST /api/admin/users：新建用户
-///   - /api/profile：当前登录人资料
-/// 设备侧网关账号切换独立在「设置 · 连接与诊断」页处理，不再与此页混合。
+/// 用户管理控制台 — 对齐 Web 管理端 `/users`：
+///   - 搜索 + all/active/suspended/admins 过滤
+///   - 每行 swipe / 长按菜单：Suspend/Activate、Promote/Demote、Create Token、Delete
+///   - 点击行 → `AdminUserDetailView`
+///   - 新建表单支持 display_name + email + role (member/admin)
+///   - 本地网关账号独立分区（不属于远程用户管理）
 struct UsersConsoleView: View {
     @Bindable var accountStore: AccountStore
     let client: GatewayClientProtocol
     let adminVM: AdminViewModel
 
     @State private var showCreateUser = false
-    @State private var newName: String = ""
-    @State private var newRole: String = "member"
+    @State private var newName = ""
+    @State private var newEmail = ""
+    @State private var newRole = "member"
     @State private var isCreating = false
     @State private var actionError: String?
+    @State private var issuedToken: String?
+    @State private var pendingAction: UsersAction?
+    @State private var search = ""
+    @State private var filter: UsersFilter = .all
 
     init(accountStore: AccountStore, client: GatewayClientProtocol, adminVM: AdminViewModel) {
         self.accountStore = accountStore
@@ -22,11 +29,24 @@ struct UsersConsoleView: View {
         self.adminVM = adminVM
     }
 
+    enum UsersFilter: String, CaseIterable {
+        case all, active, suspended, admin
+        var label: String {
+            switch self {
+            case .all:        return "全部"
+            case .active:     return "激活"
+            case .suspended:  return "暂停"
+            case .admin:      return "Admin"
+            }
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.md) {
                 profileHero
                 statsStrip
+                filtersBar
                 usersListSection
                 gatewayAccountsCard
             }
@@ -59,9 +79,7 @@ struct UsersConsoleView: View {
         .task {
             if adminVM.adminUsers.isEmpty && !adminVM.isLoading { await adminVM.load() }
         }
-        .sheet(isPresented: $showCreateUser) {
-            createUserSheet
-        }
+        .sheet(isPresented: $showCreateUser) { createUserSheet }
         .alert("操作失败", isPresented: Binding(
             get: { actionError != nil },
             set: { if !$0 { actionError = nil } }
@@ -69,6 +87,32 @@ struct UsersConsoleView: View {
             Button("好的", role: .cancel) { actionError = nil }
         } message: {
             Text(actionError ?? "")
+        }
+        .alert("Token 已生成", isPresented: Binding(
+            get: { issuedToken != nil },
+            set: { if !$0 { issuedToken = nil } }
+        )) {
+            Button("复制", role: .none) {
+                if let t = issuedToken { UIPasteboard.general.string = t }
+                issuedToken = nil
+            }
+            Button("关闭", role: .cancel) { issuedToken = nil }
+        } message: {
+            Text(issuedToken ?? "")
+        }
+        .confirmationDialog(
+            pendingAction?.title ?? "",
+            isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let p = pendingAction {
+                Button(p.buttonLabel, role: p.destructive ? .destructive : .none) {
+                    Task { await performPending(p) }
+                }
+                Button("取消", role: .cancel) { pendingAction = nil }
+            }
+        } message: {
+            if let p = pendingAction { Text(p.message) }
         }
     }
 
@@ -190,6 +234,78 @@ struct UsersConsoleView: View {
         )
     }
 
+    // MARK: - Filter bar
+
+    @ViewBuilder
+    private var filtersBar: some View {
+        VStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(AppColors.neutral)
+                TextField("搜索姓名或邮箱", text: $search)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                if !search.isEmpty {
+                    Button {
+                        search = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppColors.neutral)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(Spacing.sm)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.md)
+                    .fill(Color(.systemBackground))
+            )
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: Spacing.xs) {
+                    ForEach(UsersFilter.allCases, id: \.rawValue) { f in
+                        Button {
+                            filter = f
+                            Haptics.shared.success()
+                        } label: {
+                            Text(f.label)
+                                .font(AppTypography.nano)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, Spacing.sm)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(filter == f ? AppColors.primaryAction : AppColors.primaryAction.opacity(0.08))
+                                )
+                                .foregroundStyle(filter == f ? Color.white : AppColors.primaryAction)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var filteredUsers: [AdminUserDTO] {
+        var list = adminVM.adminUsers
+        switch filter {
+        case .all: break
+        case .active:    list = list.filter { ($0.status ?? "") == "active" }
+        case .suspended: list = list.filter { ($0.status ?? "") == "suspended" }
+        case .admin:     list = list.filter { ($0.role ?? "") == "admin" }
+        }
+        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        if !q.isEmpty {
+            list = list.filter { u in
+                (u.displayName ?? "").lowercased().contains(q)
+                || (u.email ?? "").lowercased().contains(q)
+                || u.id.lowercased().contains(q)
+            }
+        }
+        return list
+    }
+
     // MARK: - Users list
 
     @ViewBuilder
@@ -201,19 +317,26 @@ struct UsersConsoleView: View {
                 Text("网关用户")
                     .font(AppTypography.captionBold)
                 Spacer()
-                Text("\(adminVM.adminUsers.count) 人")
+                Text("\(filteredUsers.count) / \(adminVM.adminUsers.count)")
                     .font(AppTypography.micro)
                     .foregroundStyle(AppColors.neutral)
             }
 
-            if adminVM.adminUsers.isEmpty {
-                Text("没有权限读取 /api/admin/users，或尚未创建用户。")
-                    .font(AppTypography.micro)
+            if filteredUsers.isEmpty {
+                Text(adminVM.adminUsers.isEmpty ? "没有权限读取 /api/admin/users，或尚未创建用户。" : "没有匹配的用户。")
+                    .font(AppTypography.nano)
                     .foregroundStyle(AppColors.neutral)
+                    .padding(.vertical, Spacing.sm)
             } else {
                 VStack(spacing: Spacing.xs) {
-                    ForEach(adminVM.adminUsers) { user in
-                        userRow(user)
+                    ForEach(filteredUsers) { user in
+                        NavigationLink {
+                            AdminUserDetailView(userId: user.id, adminVM: adminVM)
+                        } label: {
+                            userRow(user)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu { rowMenu(user) }
                     }
                 }
             }
@@ -243,6 +366,7 @@ struct UsersConsoleView: View {
                     Text(user.displayName ?? user.id)
                         .font(AppTypography.body)
                         .fontWeight(.medium)
+                        .lineLimit(1)
                     Text((user.role ?? "member").capitalized)
                         .font(AppTypography.nano)
                         .padding(.horizontal, Spacing.xxs)
@@ -262,7 +386,7 @@ struct UsersConsoleView: View {
                         .foregroundStyle(AppColors.neutral)
                 }
                 HStack(spacing: Spacing.xs) {
-                    if let jobs = user.jobCount {
+                    if let jobs = user.jobCount, jobs > 0 {
                         Label("\(jobs)", systemImage: "briefcase")
                             .font(AppTypography.nano)
                             .foregroundStyle(AppColors.neutral)
@@ -276,6 +400,9 @@ struct UsersConsoleView: View {
             }
             Spacer()
             statusBadge(user.status)
+            Image(systemName: "chevron.right")
+                .font(AppTypography.nano)
+                .foregroundStyle(AppColors.neutral)
         }
         .padding(Spacing.sm)
         .background(
@@ -285,14 +412,60 @@ struct UsersConsoleView: View {
     }
 
     @ViewBuilder
+    private func rowMenu(_ user: AdminUserDTO) -> some View {
+        let active = (user.status ?? "") == "active"
+        if active {
+            Button(role: .destructive) {
+                pendingAction = .suspend(userId: user.id, name: user.displayName ?? user.id)
+            } label: {
+                Label("暂停账号", systemImage: "pause.circle")
+            }
+        } else {
+            Button {
+                pendingAction = .activate(userId: user.id, name: user.displayName ?? user.id)
+            } label: {
+                Label("重新激活", systemImage: "play.circle.fill")
+            }
+        }
+
+        if (user.role ?? "member") == "admin" {
+            Button {
+                pendingAction = .setRole(userId: user.id, role: "member", name: user.displayName ?? user.id)
+            } label: {
+                Label("降为 Member", systemImage: "arrow.down.circle")
+            }
+        } else {
+            Button {
+                pendingAction = .setRole(userId: user.id, role: "admin", name: user.displayName ?? user.id)
+            } label: {
+                Label("提升为 Admin", systemImage: "arrow.up.circle.fill")
+            }
+        }
+
+        Button {
+            pendingAction = .createToken(userId: user.id, name: user.displayName ?? user.id)
+        } label: {
+            Label("签发 Token", systemImage: "key.fill")
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+            pendingAction = .delete(userId: user.id, name: user.displayName ?? user.id)
+        } label: {
+            Label("删除", systemImage: "trash")
+        }
+    }
+
+    @ViewBuilder
     private func statusBadge(_ status: String?) -> some View {
         let value = (status ?? "unknown").lowercased()
         let tint: Color = {
             switch value {
-            case "active": return AppColors.success
-            case "suspended", "inactive": return AppColors.warning
-            case "banned", "revoked": return AppColors.danger
-            default: return AppColors.neutral
+            case "active":     return AppColors.success
+            case "suspended":  return AppColors.warning
+            case "banned":     return AppColors.danger
+            default:           return AppColors.neutral
             }
         }()
         Text(value.capitalized)
@@ -307,7 +480,6 @@ struct UsersConsoleView: View {
         switch (role ?? "").lowercased() {
         case "admin":   return AppColors.danger
         case "member":  return AppColors.metricPrimary
-        case "viewer":  return AppColors.neutral
         default:        return AppColors.info
         }
     }
@@ -382,10 +554,13 @@ struct UsersConsoleView: View {
                 Section("用户信息") {
                     TextField("显示名", text: $newName)
                         .textInputAutocapitalization(.words)
+                    TextField("邮箱（可选）", text: $newEmail)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.emailAddress)
+                        .autocorrectionDisabled()
                     Picker("角色", selection: $newRole) {
                         Text("Member").tag("member")
                         Text("Admin").tag("admin")
-                        Text("Viewer").tag("viewer")
                     }
                     .pickerStyle(.segmented)
                 }
@@ -402,7 +577,7 @@ struct UsersConsoleView: View {
                     }
                     .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty || isCreating)
                 } footer: {
-                    Text("调用 POST /api/admin/users — 需要 admin 权限。")
+                    Text("调用 POST /api/admin/users — 创建成功后可能会返回一枚一次性的访问 token。")
                 }
             }
             .navigationTitle("新建用户")
@@ -423,10 +598,43 @@ struct UsersConsoleView: View {
         isCreating = true
         defer { isCreating = false }
         do {
-            try await adminVM.createUser(displayName: name, email: nil, role: newRole)
+            let email = newEmail.trimmingCharacters(in: .whitespaces)
+            let tokenResp = try await adminVM.createUser(
+                displayName: name,
+                email: email.isEmpty ? nil : email,
+                role: newRole
+            )
             newName = ""
+            newEmail = ""
             newRole = "member"
             showCreateUser = false
+            if let token = tokenResp?.effectiveToken {
+                issuedToken = token
+            }
+            Haptics.shared.success()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.shared.error()
+        }
+    }
+
+    private func performPending(_ action: UsersAction) async {
+        pendingAction = nil
+        do {
+            switch action {
+            case .suspend(let id, _):
+                try await adminVM.suspendUser(id: id)
+            case .activate(let id, _):
+                try await adminVM.activateUser(id: id)
+            case .setRole(let id, let role, _):
+                try await adminVM.setUserRole(id: id, role: role)
+            case .createToken(let id, let name):
+                if let token = try await adminVM.createToken(userId: id, name: "iOS-\(name)") {
+                    issuedToken = token
+                }
+            case .delete(let id, _):
+                try await adminVM.deleteUser(id: id)
+            }
             Haptics.shared.success()
         } catch {
             actionError = error.localizedDescription
@@ -442,5 +650,62 @@ struct UsersConsoleView: View {
         }
         let parts = trimmed.split(separator: " ").prefix(2)
         return parts.compactMap { $0.first }.map { String($0) }.joined().uppercased()
+    }
+}
+
+// MARK: - Action enum
+
+enum UsersAction: Identifiable {
+    case suspend(userId: String, name: String)
+    case activate(userId: String, name: String)
+    case setRole(userId: String, role: String, name: String)
+    case createToken(userId: String, name: String)
+    case delete(userId: String, name: String)
+
+    var id: String {
+        switch self {
+        case .suspend(let u, _):      return "suspend-\(u)"
+        case .activate(let u, _):     return "activate-\(u)"
+        case .setRole(let u, let r, _): return "role-\(u)-\(r)"
+        case .createToken(let u, _):  return "token-\(u)"
+        case .delete(let u, _):       return "delete-\(u)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .suspend:     return "暂停账号"
+        case .activate:    return "重新激活"
+        case .setRole(_, let r, _): return r == "admin" ? "提升为 Admin" : "降为 Member"
+        case .createToken: return "签发 Token"
+        case .delete:      return "删除用户"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .suspend(_, let n):          return "暂停后 “\(n)” 将无法登录。可以随时重新激活。"
+        case .activate(_, let n):         return "重新启用 “\(n)” 的账号访问。"
+        case .setRole(_, let r, let n):   return "将 “\(n)” 的角色改为 \(r.capitalized)。"
+        case .createToken(_, let n):      return "将为 “\(n)” 签发一枚新的 token，仅在下一屏显示一次。"
+        case .delete(_, let n):           return "将永久删除 “\(n)”。此操作不可撤销。"
+        }
+    }
+
+    var buttonLabel: String {
+        switch self {
+        case .suspend:     return "暂停"
+        case .activate:    return "激活"
+        case .setRole:     return "保存"
+        case .createToken: return "签发"
+        case .delete:      return "删除"
+        }
+    }
+
+    var destructive: Bool {
+        switch self {
+        case .suspend, .delete: return true
+        default: return false
+        }
     }
 }
