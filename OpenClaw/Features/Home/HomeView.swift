@@ -417,7 +417,7 @@ struct HomeView: View {
             ControlCenterSection(
                 id: "admin",
                 title: "运维",
-                subtitle: "扩展 · 用户",
+                subtitle: "扩展 · 用户 · 用量",
                 icon: "slider.horizontal.below.square",
                 tint: AppColors.metricWarm,
                 modules: [
@@ -438,6 +438,15 @@ struct HomeView: View {
                         tint: AppColors.neutral,
                         detail: "\(accountStore.accounts.count) 个账号",
                         destination: AnyView(UsersConsoleView(accountStore: accountStore, client: client, adminVM: homeAdminVM))
+                    ),
+                    ControlCenterModule(
+                        id: "usage",
+                        title: "用量统计",
+                        subtitle: "聚合分析",
+                        icon: "chart.bar.doc.horizontal",
+                        tint: AppColors.metricPrimary,
+                        detail: "统计报表",
+                        destination: AnyView(UsageConsoleView(adminVM: homeAdminVM))
                     )
                 ]
             )
